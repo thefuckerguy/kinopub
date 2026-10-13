@@ -44,5 +44,12 @@ web/.vite/
 # macOS app/dmg build output
 dist-app/
 
+# Xcode / iOS local state and signed build artifacts
+ios/**/xcuserdata/
+ios/**/DerivedData/
+ios/build/
+ios/*.xcarchive/
+ios/*.ipa
+
 # generated Windows resource (icon/version) — produced by `make winsyso` / CI
 cmd/kinopub-gui/*.syso

@@ -1,0 +1,466 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 71;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E00000000000000000000001 /* KinoPadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000001 /* KinoPadApp.swift */; };
+		E00000000000000000000002 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000002 /* RootView.swift */; };
+		E00000000000000000000003 /* MediaLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000003 /* MediaLibrary.swift */; };
+		E00000000000000000000004 /* MediaLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000004 /* MediaLibraryStore.swift */; };
+		E00000000000000000000005 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000005 /* LibraryView.swift */; };
+		E00000000000000000000006 /* VideoPlayerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000006 /* VideoPlayerScreen.swift */; };
+		E00000000000000000000007 /* KinoPubModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000007 /* KinoPubModels.swift */; };
+		E00000000000000000000008 /* TokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000008 /* TokenStore.swift */; };
+		E00000000000000000000009 /* KinoPubAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000009 /* KinoPubAPI.swift */; };
+		E0000000000000000000000A /* KinoPubSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000000A /* KinoPubSession.swift */; };
+		E0000000000000000000000B /* CatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000000B /* CatalogView.swift */; };
+		E0000000000000000000000C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000000C /* SettingsView.swift */; };
+		E0000000000000000000000D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000000D /* Assets.xcassets */; };
+		E0000000000000000000000E /* KinoPadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0000000000000000000000E /* KinoPadTests.swift */; };
+		E00000000000000000000011 /* PlaybackProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000011 /* PlaybackProgressStore.swift */; };
+		E00000000000000000000012 /* OfflineDownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000012 /* OfflineDownloadManager.swift */; };
+		E00000000000000000000013 /* RemoteLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000013 /* RemoteLibraryView.swift */; };
+		E00000000000000000000014 /* PosterImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000014 /* PosterImage.swift */; };
+		E00000000000000000000015 /* WatchLaterStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00000000000000000000015 /* WatchLaterStore.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B00000000000000000000008 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B00000000000000000000001;
+			remoteInfo = KinoPad;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		D00000000000000000000001 /* KinoPadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinoPadApp.swift; sourceTree = "<group>"; };
+		D00000000000000000000002 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		D00000000000000000000003 /* MediaLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLibrary.swift; sourceTree = "<group>"; };
+		D00000000000000000000004 /* MediaLibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaLibraryStore.swift; sourceTree = "<group>"; };
+		D00000000000000000000005 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		D00000000000000000000006 /* VideoPlayerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerScreen.swift; sourceTree = "<group>"; };
+		D00000000000000000000007 /* KinoPubModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinoPubModels.swift; sourceTree = "<group>"; };
+		D00000000000000000000008 /* TokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStore.swift; sourceTree = "<group>"; };
+		D00000000000000000000009 /* KinoPubAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinoPubAPI.swift; sourceTree = "<group>"; };
+		D0000000000000000000000A /* KinoPubSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinoPubSession.swift; sourceTree = "<group>"; };
+		D0000000000000000000000B /* CatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogView.swift; sourceTree = "<group>"; };
+		D0000000000000000000000C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		D0000000000000000000000D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D0000000000000000000000E /* KinoPadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinoPadTests.swift; sourceTree = "<group>"; };
+		D0000000000000000000000F /* KinoPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KinoPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D00000000000000000000010 /* KinoPadTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KinoPadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D00000000000000000000011 /* PlaybackProgressStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackProgressStore.swift; sourceTree = "<group>"; };
+		D00000000000000000000012 /* OfflineDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineDownloadManager.swift; sourceTree = "<group>"; };
+		D00000000000000000000013 /* RemoteLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteLibraryView.swift; sourceTree = "<group>"; };
+		D00000000000000000000014 /* PosterImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PosterImage.swift; sourceTree = "<group>"; };
+		D00000000000000000000015 /* WatchLaterStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLaterStore.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B00000000000000000000004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B00000000000000000000007 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C00000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000002 /* KinoPad */,
+				C00000000000000000000004 /* KinoPadTests */,
+				C00000000000000000000005 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C00000000000000000000002 /* KinoPad */ = {
+			isa = PBXGroup;
+			children = (
+				D00000000000000000000001 /* KinoPadApp.swift */,
+				D00000000000000000000002 /* RootView.swift */,
+				D00000000000000000000003 /* MediaLibrary.swift */,
+				D00000000000000000000004 /* MediaLibraryStore.swift */,
+				D00000000000000000000005 /* LibraryView.swift */,
+				D00000000000000000000006 /* VideoPlayerScreen.swift */,
+				D00000000000000000000007 /* KinoPubModels.swift */,
+				D00000000000000000000008 /* TokenStore.swift */,
+				D00000000000000000000009 /* KinoPubAPI.swift */,
+				D0000000000000000000000A /* KinoPubSession.swift */,
+				D0000000000000000000000B /* CatalogView.swift */,
+				D0000000000000000000000C /* SettingsView.swift */,
+				D00000000000000000000011 /* PlaybackProgressStore.swift */,
+				D00000000000000000000012 /* OfflineDownloadManager.swift */,
+				D00000000000000000000013 /* RemoteLibraryView.swift */,
+				D00000000000000000000014 /* PosterImage.swift */,
+				D00000000000000000000015 /* WatchLaterStore.swift */,
+				C00000000000000000000003 /* Resources */,
+			);
+			path = KinoPad;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000003 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				D0000000000000000000000D /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000004 /* KinoPadTests */ = {
+			isa = PBXGroup;
+			children = (
+				D0000000000000000000000E /* KinoPadTests.swift */,
+			);
+			path = KinoPadTests;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000005 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D0000000000000000000000F /* KinoPad.app */,
+				D00000000000000000000010 /* KinoPadTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B00000000000000000000001 /* KinoPad */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000003 /* Build configuration list for PBXNativeTarget "KinoPad" */;
+			buildPhases = (
+				B00000000000000000000003 /* Sources */,
+				B00000000000000000000004 /* Frameworks */,
+				B00000000000000000000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KinoPad;
+			productName = KinoPad;
+			productReference = D0000000000000000000000F /* KinoPad.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B00000000000000000000002 /* KinoPadTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A00000000000000000000004 /* Build configuration list for PBXNativeTarget "KinoPadTests" */;
+			buildPhases = (
+				B00000000000000000000006 /* Sources */,
+				B00000000000000000000007 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B00000000000000000000009 /* PBXTargetDependency */,
+			);
+			name = KinoPadTests;
+			productName = KinoPadTests;
+			productReference = D00000000000000000000010 /* KinoPadTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					B00000000000000000000001 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					B00000000000000000000002 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = B00000000000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = A00000000000000000000002 /* Build configuration list for PBXProject "KinoPad" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				ru,
+			);
+			mainGroup = C00000000000000000000001;
+			productRefGroup = C00000000000000000000005 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B00000000000000000000001 /* KinoPad */,
+				B00000000000000000000002 /* KinoPadTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B00000000000000000000005 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E0000000000000000000000D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B00000000000000000000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E00000000000000000000001 /* KinoPadApp.swift in Sources */,
+				E00000000000000000000002 /* RootView.swift in Sources */,
+				E00000000000000000000003 /* MediaLibrary.swift in Sources */,
+				E00000000000000000000004 /* MediaLibraryStore.swift in Sources */,
+				E00000000000000000000005 /* LibraryView.swift in Sources */,
+				E00000000000000000000006 /* VideoPlayerScreen.swift in Sources */,
+				E00000000000000000000007 /* KinoPubModels.swift in Sources */,
+				E00000000000000000000008 /* TokenStore.swift in Sources */,
+				E00000000000000000000009 /* KinoPubAPI.swift in Sources */,
+				E0000000000000000000000A /* KinoPubSession.swift in Sources */,
+				E0000000000000000000000B /* CatalogView.swift in Sources */,
+				E0000000000000000000000C /* SettingsView.swift in Sources */,
+				E00000000000000000000011 /* PlaybackProgressStore.swift in Sources */,
+				E00000000000000000000012 /* OfflineDownloadManager.swift in Sources */,
+				E00000000000000000000013 /* RemoteLibraryView.swift in Sources */,
+				E00000000000000000000014 /* PosterImage.swift in Sources */,
+				E00000000000000000000015 /* WatchLaterStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B00000000000000000000006 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E0000000000000000000000E /* KinoPadTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B00000000000000000000009 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B00000000000000000000001 /* KinoPad */;
+			targetProxy = B00000000000000000000008 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A00000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A00000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A00000000000000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 10;
+				DEVELOPMENT_TEAM = P4R7L5C576;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "WooF.Play";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.3.6;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kinopad.KinoPad;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A00000000000000000000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 10;
+				DEVELOPMENT_TEAM = P4R7L5C576;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "WooF.Play";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIFileSharingEnabled = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.3.6;
+				PRODUCT_BUNDLE_IDENTIFIER = app.kinopad.KinoPad;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A00000000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.kinopad.KinoPadTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KinoPad.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KinoPad";
+			};
+			name = Debug;
+		};
+		A0000000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.kinopad.KinoPadTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KinoPad.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KinoPad";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A00000000000000000000002 /* Build configuration list for PBXProject "KinoPad" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000005 /* Debug */,
+				A00000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000003 /* Build configuration list for PBXNativeTarget "KinoPad" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000007 /* Debug */,
+				A00000000000000000000008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A00000000000000000000004 /* Build configuration list for PBXNativeTarget "KinoPadTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A00000000000000000000009 /* Debug */,
+				A0000000000000000000000A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A00000000000000000000001 /* Project object */;
+}
