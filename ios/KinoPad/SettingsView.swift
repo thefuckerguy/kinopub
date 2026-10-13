@@ -13,6 +13,7 @@ struct SettingsView: View {
     @State private var showsMirrorInstaller = false
     @State private var portalError: String?
     @State private var pendingDeviceRemoval: KinoPubDevice?
+    private let provisioningProfile = ProvisioningProfileInfo.current()
 
     var body: some View {
         NavigationStack {
@@ -37,7 +38,8 @@ struct SettingsView: View {
 
                 Section("О приложении") {
                     LabeledContent("Приложение", value: "WooF.Play")
-                    LabeledContent("Версия", value: "0.3.6")
+                    LabeledContent("Версия", value: AppBuildInfo.displayVersion)
+                    installationValidity
                     Text("Нативный онлайн‑кинотеатр с каталогом kino.watch и локальной библиотекой.")
                         .foregroundStyle(.secondary)
                 }
@@ -89,6 +91,30 @@ struct SettingsView: View {
             } message: {
                 Text("Перед удалением WooF.Play ещё раз проверит активность. Текущее или недавно активное устройство отвязано не будет.")
             }
+        }
+    }
+
+    @ViewBuilder
+    private var installationValidity: some View {
+        if let profile = provisioningProfile,
+           profile.isLocallyProvisioned,
+           let expirationDate = profile.expirationDate {
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                LabeledContent("Осталось работать") {
+                    Text(ProvisioningProfileInfo.remainingText(until: expirationDate, now: context.date))
+                        .monospacedDigit()
+                        .foregroundStyle(expirationDate.timeIntervalSince(context.date) < 86_400 ? .orange : .primary)
+                }
+            }
+            LabeledContent(
+                "Подпись действует до",
+                value: expirationDate.formatted(date: .long, time: .shortened)
+            )
+            Text("После окончания срока локальной подписи установите свежую сборку через WooF Installer. Данные приложения при обновлении сохраняются.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } else {
+            LabeledContent("Срок установки", value: "управляется TestFlight / App Store")
         }
     }
 
@@ -321,6 +347,63 @@ struct SettingsView: View {
               url.host?.isEmpty == false
         else { return nil }
         return url
+    }
+}
+
+struct ProvisioningProfileInfo: Equatable {
+    let expirationDate: Date?
+    let provisionedDevices: [String]
+    let provisionsAllDevices: Bool
+
+    var isLocallyProvisioned: Bool {
+        provisionsAllDevices || !provisionedDevices.isEmpty
+    }
+
+    static func current(bundle: Bundle = .main) -> ProvisioningProfileInfo? {
+        guard let url = bundle.url(forResource: "embedded", withExtension: "mobileprovision"),
+              let data = try? Data(contentsOf: url)
+        else { return nil }
+        return decode(data: data)
+    }
+
+    static func decode(data: Data) -> ProvisioningProfileInfo? {
+        let startMarker = Data("<?xml".utf8)
+        let endMarker = Data("</plist>".utf8)
+        guard let start = data.range(of: startMarker),
+              let end = data.range(
+                of: endMarker,
+                options: [],
+                in: start.lowerBound..<data.endIndex
+              )
+        else { return nil }
+
+        let plistData = Data(data[start.lowerBound..<end.upperBound])
+        guard let plist = try? PropertyListSerialization.propertyList(
+            from: plistData,
+            options: [],
+            format: nil
+        ) as? [String: Any]
+        else { return nil }
+
+        return ProvisioningProfileInfo(
+            expirationDate: plist["ExpirationDate"] as? Date,
+            provisionedDevices: plist["ProvisionedDevices"] as? [String] ?? [],
+            provisionsAllDevices: plist["ProvisionsAllDevices"] as? Bool ?? false
+        )
+    }
+
+    static func remainingText(until expirationDate: Date, now: Date = .now) -> String {
+        let remainingSeconds = max(0, Int(expirationDate.timeIntervalSince(now)))
+        guard remainingSeconds > 0 else { return "Срок истёк" }
+
+        let days = remainingSeconds / 86_400
+        let hours = (remainingSeconds % 86_400) / 3_600
+        let minutes = (remainingSeconds % 3_600) / 60
+        let seconds = remainingSeconds % 60
+        if days > 0 {
+            return "\(days) д. \(hours) ч. \(minutes) мин."
+        }
+        return "\(hours) ч. \(minutes) мин. \(seconds) сек."
     }
 }
 

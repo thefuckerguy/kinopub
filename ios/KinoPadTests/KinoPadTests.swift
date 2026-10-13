@@ -2,6 +2,38 @@ import XCTest
 @testable import KinoPad
 
 final class KinoPadTests: XCTestCase {
+    func testProvisioningProfileParserAndRemainingTime() throws {
+        let expirationDate = Date(timeIntervalSince1970: 2_000_100_000)
+        let plist: [String: Any] = [
+            "ExpirationDate": expirationDate,
+            "ProvisionedDevices": ["PHONE-UDID"]
+        ]
+        let plistData = try PropertyListSerialization.data(
+            fromPropertyList: plist,
+            format: .xml,
+            options: 0
+        )
+        var wrappedData = Data("CMS-prefix".utf8)
+        wrappedData.append(plistData)
+        wrappedData.append(Data("CMS-suffix".utf8))
+
+        let profile = try XCTUnwrap(ProvisioningProfileInfo.decode(data: wrappedData))
+        XCTAssertEqual(profile.expirationDate, expirationDate)
+        XCTAssertEqual(profile.provisionedDevices, ["PHONE-UDID"])
+        XCTAssertTrue(profile.isLocallyProvisioned)
+        XCTAssertEqual(
+            ProvisioningProfileInfo.remainingText(
+                until: expirationDate,
+                now: expirationDate.addingTimeInterval(-(90_061))
+            ),
+            "1 д. 1 ч. 1 мин."
+        )
+        XCTAssertEqual(
+            ProvisioningProfileInfo.remainingText(until: expirationDate, now: expirationDate),
+            "Срок истёк"
+        )
+    }
+
     func testFlexibleIDDecodesNumberAndString() throws {
         let decoder = JSONDecoder()
         XCTAssertEqual(try decoder.decode(FlexibleID.self, from: Data("42".utf8)).value, "42")

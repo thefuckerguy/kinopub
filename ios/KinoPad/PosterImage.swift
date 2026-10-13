@@ -10,7 +10,10 @@ enum PosterImageRequestFactory {
         )
         request.setValue("image/avif,image/webp,image/*,*/*;q=0.8", forHTTPHeaderField: "Accept")
         request.setValue("https://kino.watch/", forHTTPHeaderField: "Referer")
-        request.setValue("WooF.Play/0.3.6 (\(AppDevice.platformName); iOS)", forHTTPHeaderField: "User-Agent")
+        request.setValue(
+            "WooF.Play/\(AppBuildInfo.version) (\(AppDevice.platformName); iOS)",
+            forHTTPHeaderField: "User-Agent"
+        )
         return request
     }
 }

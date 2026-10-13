@@ -19,6 +19,7 @@ enum InstallerError: LocalizedError {
     case malformedResponse
     case developerModeRequiresUSB
     case developerModePasscodeProtected
+    case developerModeDisabled
 
     var errorDescription: String? {
         switch self {
@@ -42,6 +43,8 @@ enum InstallerError: LocalizedError {
             return "Для включения режима разработчика подключите и разблокируйте устройство кабелем USB. После перезагрузки подтвердите режим на самом устройстве."
         case .developerModePasscodeProtected:
             return "Apple не разрешает Mac автоматически включить Developer Mode на iPhone с код‑паролем. Не отключайте код‑пароль: на iPhone откройте «Настройки → Конфиденциальность и безопасность → Режим разработчика», включите переключатель, перезагрузитесь и подтвердите действие код‑паролем."
+        case .developerModeDisabled:
+            return "На выбранном устройстве выключен режим разработчика. Включите его в «Настройки → Конфиденциальность и безопасность → Режим разработчика», подтвердите перезагрузку и обновите список устройств."
         }
     }
 }
@@ -195,6 +198,36 @@ final class InstallerModel: ObservableObject {
             let device = try self.requireDevice()
             try await self.buildAndInstallInternal(on: device)
             return "Свежая сборка WooF.Play установлена на \(device.name)."
+        }
+    }
+
+    func automaticallyInstallOrUpdate() {
+        runOperation("Проверяю обновления и готовлю WooF.Play…") { [weak self] in
+            guard let self else { return "" }
+            let device = try self.requireDevice()
+            guard device.developerModeEnabled else {
+                throw InstallerError.developerModeDisabled
+            }
+
+            let repository = try self.requireRepository()
+            try await self.ensureTrackedFilesAreClean(repository)
+            let wasInstalled = self.installedVersion != nil
+            let behindCount = try await self.checkGitUpdatesInternal()
+            if behindCount > 0 {
+                let pull = try await self.runGit(
+                    ["pull", "--ff-only", "origin", "main"],
+                    repository: repository
+                )
+                self.record(pull.output)
+                self.gitBehindCount = 0
+            }
+
+            try await self.buildAndInstallInternal(on: device)
+            let action = wasInstalled ? "обновлена" : "установлена"
+            let source = behindCount > 0
+                ? "Исходники обновлены из GitHub."
+                : "Использована актуальная локальная версия."
+            return "WooF.Play \(action) и запущена на \(device.name). \(source)"
         }
     }
 

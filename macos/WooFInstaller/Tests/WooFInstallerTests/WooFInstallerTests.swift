@@ -114,7 +114,7 @@ final class WooFInstallerTests: XCTestCase {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let ipaURL = repositoryRoot
-            .appendingPathComponent("ios/build/installer/WooF.Play-0.3.6-development.ipa")
+            .appendingPathComponent("ios/build/installer/WooF.Play-0.3.7-development.ipa")
         guard FileManager.default.fileExists(atPath: ipaURL.path) else {
             throw XCTSkip("Локальный development IPA отсутствует.")
         }
@@ -122,7 +122,7 @@ final class WooFInstallerTests: XCTestCase {
         let prepared = try await IPAInspector.prepare(ipaURL)
         defer { prepared.removeTemporaryFiles() }
         XCTAssertEqual(prepared.inspection.bundleID, InstallerConstants.expectedBundleID)
-        XCTAssertEqual(prepared.inspection.version, "0.3.6")
+        XCTAssertEqual(prepared.inspection.version, "0.3.7")
         XCTAssertFalse(prepared.inspection.provisionedDevices.isEmpty)
     }
 

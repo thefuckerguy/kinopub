@@ -124,6 +124,18 @@ struct ContentView: View {
                 LabeledContent("Установлено") {
                     Text(model.installedDescription)
                 }
+                Button {
+                    model.automaticallyInstallOrUpdate()
+                } label: {
+                    Label("Автоматически установить / обновить", systemImage: "arrow.triangle.2.circlepath.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(model.isBusy || model.selectedDevice == nil || model.repositoryPath.isEmpty)
+                Text("Одно нажатие: проверка GitHub, безопасное обновление исходников, сборка и подпись через Xcode, установка и запуск на выбранном устройстве.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 if let device = model.selectedDevice {
                     HStack {
                         Label(

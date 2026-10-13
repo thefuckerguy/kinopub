@@ -8,6 +8,17 @@ enum AppDevice {
     static var storageSystemImage: String { isPhone ? "iphone" : "ipad" }
 }
 
+enum AppBuildInfo {
+    static let version = Bundle.main.object(
+        forInfoDictionaryKey: "CFBundleShortVersionString"
+    ) as? String ?? "—"
+    static let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+
+    static var displayVersion: String {
+        build.map { "\(version) (\($0))" } ?? version
+    }
+}
+
 enum AppSection: String, CaseIterable, Identifiable {
     case fresh
     case catalog

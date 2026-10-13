@@ -174,7 +174,7 @@ final class KinoPubSession: ObservableObject {
         try await api.notifyDevice(
             title: "WooF.Play · \(deviceDisplayName)",
             hardware: "\(device.model) · \(device.name) · \(device.systemName) \(device.systemVersion)",
-            software: "WooF.Play 0.3.6"
+            software: "WooF.Play \(AppBuildInfo.version)"
         )
     }
 
