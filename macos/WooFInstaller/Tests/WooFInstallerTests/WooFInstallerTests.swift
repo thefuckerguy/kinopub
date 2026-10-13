@@ -131,4 +131,11 @@ final class WooFInstallerTests: XCTestCase {
         XCTAssertTrue(message.contains("Не отключайте код‑пароль"))
         XCTAssertTrue(message.contains("Конфиденциальность и безопасность"))
     }
+
+    func testUntrustedDeveloperMessageExplainsThatInstallationSucceeded() {
+        let message = InstallerError.developerCertificateNotTrusted.localizedDescription
+        XCTAssertTrue(message.contains("установлена"))
+        XCTAssertTrue(message.contains("VPN и управление устройством"))
+        XCTAssertTrue(message.contains("Доверять"))
+    }
 }

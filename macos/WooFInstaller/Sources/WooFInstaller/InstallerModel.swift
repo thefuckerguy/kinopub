@@ -20,6 +20,7 @@ enum InstallerError: LocalizedError {
     case developerModeRequiresUSB
     case developerModePasscodeProtected
     case developerModeDisabled
+    case developerCertificateNotTrusted
 
     var errorDescription: String? {
         switch self {
@@ -45,6 +46,8 @@ enum InstallerError: LocalizedError {
             return "Apple не разрешает Mac автоматически включить Developer Mode на iPhone с код‑паролем. Не отключайте код‑пароль: на iPhone откройте «Настройки → Конфиденциальность и безопасность → Режим разработчика», включите переключатель, перезагрузитесь и подтвердите действие код‑паролем."
         case .developerModeDisabled:
             return "На выбранном устройстве выключен режим разработчика. Включите его в «Настройки → Конфиденциальность и безопасность → Режим разработчика», подтвердите перезагрузку и обновите список устройств."
+        case .developerCertificateNotTrusted:
+            return "WooF.Play установлена, но iPhone пока не доверяет сертификату разработчика. На iPhone откройте «Настройки → Основные → VPN и управление устройством», выберите профиль разработчика, нажмите «Доверять», затем откройте WooF.Play."
         }
     }
 }
@@ -443,7 +446,7 @@ final class InstallerModel: ObservableObject {
             ["devicectl", "device", "install", "app", "--device", device.id, appURL.path]
         )
         record(installation.output)
-        let launch = try await ProcessRunner.checked(
+        let launch = try await ProcessRunner.run(
             "/usr/bin/xcrun",
             [
                 "devicectl", "device", "process", "launch",
@@ -453,6 +456,16 @@ final class InstallerModel: ObservableObject {
             ]
         )
         record(launch.output)
+        guard launch.status == 0 else {
+            if launch.output.localizedCaseInsensitiveContains("not been explicitly trusted") {
+                throw InstallerError.developerCertificateNotTrusted
+            }
+            throw CommandFailure.failed(
+                executable: "xcrun devicectl device process launch",
+                status: launch.status,
+                output: launch.output
+            )
+        }
     }
 
     private func checkGitUpdatesInternal() async throws -> Int {
