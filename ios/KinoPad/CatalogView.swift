@@ -965,8 +965,8 @@ struct CatalogDetailView: View {
             Label(
                 resume > 5 && !(progress.isWatched(context.key) || first.isWatched)
                     ? "Продолжить с \(Self.timecode(resume))"
-                    : "Смотреть",
-                systemImage: "play.fill"
+                    : "Открыть во весь экран",
+                systemImage: "arrow.up.left.and.arrow.down.right"
             )
             .frame(maxWidth: isCompact ? .infinity : nil)
         }

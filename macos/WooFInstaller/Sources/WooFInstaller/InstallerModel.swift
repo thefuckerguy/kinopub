@@ -21,6 +21,9 @@ enum InstallerError: LocalizedError {
     case developerModePasscodeProtected
     case developerModeDisabled
     case developerCertificateNotTrusted
+    case noWirelessDevices
+    case wirelessDevicesNeedDeveloperMode([String])
+    case wirelessBatchFailed(successful: [String], failures: [String])
 
     var errorDescription: String? {
         switch self {
@@ -48,6 +51,15 @@ enum InstallerError: LocalizedError {
             return "На выбранном устройстве выключен режим разработчика. Включите его в «Настройки → Конфиденциальность и безопасность → Режим разработчика», подтвердите перезагрузку и обновите список устройств."
         case .developerCertificateNotTrusted:
             return "WooF.Play установлена, но iPhone пока не доверяет сертификату разработчика. На iPhone откройте «Настройки → Основные → VPN и управление устройством», выберите профиль разработчика, нажмите «Доверять», затем откройте WooF.Play."
+        case .noWirelessDevices:
+            return "Нет iPhone или iPad, доступных по Wi‑Fi. Сначала один раз подключите и доверьте устройство Mac через Xcode, затем оставьте оба устройства в одной сети."
+        case let .wirelessDevicesNeedDeveloperMode(names):
+            return "На доступных по Wi‑Fi устройствах выключен режим разработчика: \(names.joined(separator: ", ")). Включите его на каждом устройстве и повторите обновление."
+        case let .wirelessBatchFailed(successful, failures):
+            let completed = successful.isEmpty
+                ? ""
+                : "Обновлено: \(successful.joined(separator: ", ")). "
+            return "\(completed)Не удалось обновить: \(failures.joined(separator: "; "))."
         }
     }
 }
@@ -87,6 +99,14 @@ final class InstallerModel: ObservableObject {
     var selectedDevice: IOSDevice? {
         guard let selectedDeviceID else { return nil }
         return devices.first { $0.id == selectedDeviceID }
+    }
+
+    var wirelessDevices: [IOSDevice] {
+        devices.filter(\.isWireless)
+    }
+
+    var wirelessReadyDevices: [IOSDevice] {
+        wirelessDevices.filter(\.developerModeEnabled)
     }
 
     var installedDescription: String {
@@ -234,6 +254,66 @@ final class InstallerModel: ObservableObject {
         }
     }
 
+    func updateAllAvailableDevicesOverWiFi() {
+        runOperation("Ищу устройства и готовлю обновление по Wi‑Fi…") { [weak self] in
+            guard let self else { return "" }
+            try await self.discoverDevicesInternal()
+
+            let wirelessDevices = self.wirelessDevices
+            guard !wirelessDevices.isEmpty else {
+                throw InstallerError.noWirelessDevices
+            }
+            let targets = self.wirelessReadyDevices
+            guard !targets.isEmpty else {
+                throw InstallerError.wirelessDevicesNeedDeveloperMode(
+                    wirelessDevices.map(\.name)
+                )
+            }
+
+            let repository = try self.requireRepository()
+            try await self.ensureTrackedFilesAreClean(repository)
+            let behindCount = try await self.checkGitUpdatesInternal()
+            if behindCount > 0 {
+                let pull = try await self.runGit(
+                    ["pull", "--ff-only", "origin", "main"],
+                    repository: repository
+                )
+                self.record(pull.output)
+                self.gitBehindCount = 0
+            }
+
+            var successful: [String] = []
+            var failures = wirelessDevices
+                .filter { !$0.developerModeEnabled }
+                .map { "\($0.name): режим разработчика выключен" }
+            for (index, device) in targets.enumerated() {
+                self.statusMessage = "Обновляю \(device.name) по Wi‑Fi — \(index + 1) из \(targets.count)…"
+                do {
+                    try await self.buildAndInstallInternal(
+                        on: device,
+                        launchAfterInstall: false
+                    )
+                    successful.append(device.name)
+                } catch {
+                    let failure = "\(device.name): \(error.localizedDescription)"
+                    failures.append(failure)
+                    self.record(failure)
+                }
+            }
+
+            if !failures.isEmpty {
+                throw InstallerError.wirelessBatchFailed(
+                    successful: successful,
+                    failures: failures
+                )
+            }
+            let source = behindCount > 0
+                ? "Исходники получены из GitHub."
+                : "Использована актуальная локальная версия."
+            return "WooF.Play обновлена по Wi‑Fi на всех доступных устройствах: \(successful.joined(separator: ", ")). \(source)"
+        }
+    }
+
     func enableDeveloperMode() {
         runOperation("Отправляю устройству запрос на включение режима разработчика…") { [weak self] in
             guard let self else { return "" }
@@ -347,6 +427,19 @@ final class InstallerModel: ObservableObject {
     }
 
     private func refreshDevicesInternal() async throws -> String {
+        try await discoverDevicesInternal()
+        if selectedDevice != nil {
+            try await refreshInstalledVersionInternal()
+        } else {
+            installedVersion = nil
+            installedBuild = nil
+        }
+        return devices.isEmpty
+            ? "Устройства не найдены. Разблокируйте телефон, подтвердите доверие и включите режим разработчика."
+            : "Найдено устройств: \(devices.count)."
+    }
+
+    private func discoverDevicesInternal() async throws {
         let jsonURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("woof-installer-devices-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: jsonURL) }
@@ -365,15 +458,6 @@ final class InstallerModel: ObservableObject {
         if selectedDeviceID == nil || !devices.contains(where: { $0.id == selectedDeviceID }) {
             selectedDeviceID = devices.first?.id
         }
-        if selectedDevice != nil {
-            try await refreshInstalledVersionInternal()
-        } else {
-            installedVersion = nil
-            installedBuild = nil
-        }
-        return devices.isEmpty
-            ? "Устройства не найдены. Разблокируйте телефон, подтвердите доверие и включите режим разработчика."
-            : "Найдено устройств: \(devices.count)."
     }
 
     private func refreshInstalledVersionInternal() async throws {
@@ -402,7 +486,10 @@ final class InstallerModel: ObservableObject {
         installedBuild = app?.bundleVersion
     }
 
-    private func buildAndInstallInternal(on device: IOSDevice) async throws {
+    private func buildAndInstallInternal(
+        on device: IOSDevice,
+        launchAfterInstall: Bool = true
+    ) async throws {
         let repository = try requireRepository()
         let projectURL = repository.appendingPathComponent("ios/KinoPad.xcodeproj")
         let derivedDataURL = try applicationSupportDirectory()
@@ -436,16 +523,27 @@ final class InstallerModel: ObservableObject {
             ["--verify", "--deep", "--strict", appURL.path]
         )
         record(signature.output)
-        try await install(appURL: appURL, on: device)
-        try await refreshInstalledVersionInternal()
+        try await install(
+            appURL: appURL,
+            on: device,
+            launchAfterInstall: launchAfterInstall
+        )
+        if selectedDeviceID == device.id {
+            try await refreshInstalledVersionInternal()
+        }
     }
 
-    private func install(appURL: URL, on device: IOSDevice) async throws {
+    private func install(
+        appURL: URL,
+        on device: IOSDevice,
+        launchAfterInstall: Bool = true
+    ) async throws {
         let installation = try await ProcessRunner.checked(
             "/usr/bin/xcrun",
             ["devicectl", "device", "install", "app", "--device", device.id, appURL.path]
         )
         record(installation.output)
+        guard launchAfterInstall else { return }
         let launch = try await ProcessRunner.run(
             "/usr/bin/xcrun",
             [

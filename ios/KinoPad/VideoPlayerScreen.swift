@@ -1,5 +1,6 @@
 import AVKit
 import SwiftUI
+import UIKit
 
 struct VideoPlayerScreen: View {
     @EnvironmentObject private var progressStore: PlaybackProgressStore
@@ -19,6 +20,8 @@ struct VideoPlayerScreen: View {
     @State private var audioOptions: [AVMediaSelectionOption] = []
     @State private var selectedAudioIndex: Int?
     @State private var hasStarted = false
+    @State private var controlsVisible = true
+    @State private var controlsHideTask: Task<Void, Never>?
 
     init(
         url: URL,
@@ -39,31 +42,40 @@ struct VideoPlayerScreen: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            VideoPlayer(player: player)
+            PlayerSurface(player: player)
                 .ignoresSafeArea()
+                .accessibilityLabel(title)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: toggleControls)
 
-            VStack {
-                HStack {
-                    if let onClose {
-                        Button(action: onClose) {
-                            Image(systemName: "xmark")
-                                .font(.headline)
-                                .frame(width: 40, height: 40)
-                                .background(.ultraThinMaterial, in: Circle())
+            if controlsVisible {
+                VStack {
+                    HStack {
+                        if let onClose {
+                            Button(action: onClose) {
+                                Image(systemName: "xmark")
+                                    .font(.headline)
+                                    .frame(width: 40, height: 40)
+                                    .background(.ultraThinMaterial, in: Circle())
+                            }
+                            .accessibilityLabel("Закрыть")
                         }
-                        .accessibilityLabel("Закрыть")
+                        Spacer()
+                        audioMenu
                     }
-                    Spacer()
-                    audioMenu
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
 
-                Spacer()
+                    Spacer()
+                }
+                .transition(.opacity)
             }
         }
-        .onAppear(perform: startPlayback)
+        .onAppear {
+            startPlayback()
+            showControlsTemporarily()
+        }
         .onDisappear(perform: stopPlayback)
         .persistentSystemOverlays(.hidden)
     }
@@ -136,6 +148,8 @@ struct VideoPlayerScreen: View {
     }
 
     private func stopPlayback() {
+        controlsHideTask?.cancel()
+        controlsHideTask = nil
         guard hasStarted else { return }
         hasStarted = false
         let position = player.currentTime().seconds
@@ -163,6 +177,31 @@ struct VideoPlayerScreen: View {
         audioGroup = nil
         audioOptions = []
         selectedAudioIndex = nil
+    }
+
+    private func toggleControls() {
+        if controlsVisible {
+            controlsHideTask?.cancel()
+            withAnimation(.easeOut(duration: 0.2)) {
+                controlsVisible = false
+            }
+        } else {
+            showControlsTemporarily()
+        }
+    }
+
+    private func showControlsTemporarily() {
+        controlsHideTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) {
+            controlsVisible = true
+        }
+        controlsHideTask = Task {
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                controlsVisible = false
+            }
+        }
     }
 
     private func loadAudioOptions(for item: AVPlayerItem) {
@@ -201,5 +240,39 @@ struct VideoPlayerScreen: View {
             return audioOptions[index].displayName
         }
         return "Аудиодорожка \(index + 1)"
+    }
+}
+
+private struct PlayerSurface: UIViewRepresentable {
+    let player: AVPlayer
+
+    func makeUIView(context: Context) -> PlayerSurfaceView {
+        let view = PlayerSurfaceView()
+        view.player = player
+        return view
+    }
+
+    func updateUIView(_ uiView: PlayerSurfaceView, context: Context) {
+        uiView.player = player
+    }
+
+    static func dismantleUIView(_ uiView: PlayerSurfaceView, coordinator: Void) {
+        uiView.player = nil
+    }
+}
+
+private final class PlayerSurfaceView: UIView {
+    override class var layerClass: AnyClass { AVPlayerLayer.self }
+
+    private var playerLayer: AVPlayerLayer {
+        layer as! AVPlayerLayer
+    }
+
+    var player: AVPlayer? {
+        get { playerLayer.player }
+        set {
+            playerLayer.videoGravity = .resizeAspect
+            playerLayer.player = newValue
+        }
     }
 }

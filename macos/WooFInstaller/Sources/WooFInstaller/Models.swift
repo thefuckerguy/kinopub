@@ -16,6 +16,10 @@ struct IOSDevice: Identifiable, Hashable {
     let connection: String
     let developerModeEnabled: Bool
 
+    var isWireless: Bool {
+        connection == "localNetwork"
+    }
+
     var detail: String {
         [model, osVersion.isEmpty ? nil : "iOS \(osVersion)", connectionLabel]
             .compactMap { $0 }
@@ -25,7 +29,7 @@ struct IOSDevice: Identifiable, Hashable {
     private var connectionLabel: String? {
         switch connection {
         case "localNetwork": return "Wi‑Fi"
-        case "usb": return "USB"
+        case "usb", "wired": return "USB"
         case "sameMachine": return "локально"
         default: return connection.isEmpty ? nil : connection
         }

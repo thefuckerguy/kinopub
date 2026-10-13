@@ -64,6 +64,50 @@ final class WooFInstallerTests: XCTestCase {
         XCTAssertTrue(document.result.devices.compactMap(\.installerDevice).isEmpty)
     }
 
+    func testWirelessDeviceIsRecognizedForOverTheAirUpdates() throws {
+        let json = #"""
+        {
+          "result": {
+            "devices": [{
+              "identifier": "ipad-core-id",
+              "visibilityClass": "default",
+              "properties": {
+                "hardware": {
+                  "marketingName": "iPad Pro",
+                  "platform": "iOS",
+                  "udid": "IPAD-UDID"
+                },
+                "software": {"osVersionNumber": {"stringValue": "26.0"}},
+                "state": {
+                  "name": "iPad",
+                  "developerModeStatus": {"enabled": {"mode": 1}}
+                },
+                "connection": {"state": "connected", "transportType": "localNetwork"}
+              }
+            }]
+          }
+        }
+        """#
+        let document = try JSONDecoder().decode(DeviceListDocument.self, from: Data(json.utf8))
+        let device = try XCTUnwrap(document.result.devices.first?.installerDevice)
+        XCTAssertTrue(device.isWireless)
+        XCTAssertTrue(device.developerModeEnabled)
+        XCTAssertTrue(device.detail.contains("Wi‑Fi"))
+    }
+
+    func testWiredTransportUsesUSBLabel() {
+        let device = IOSDevice(
+            id: "PHONE",
+            name: "iPhone",
+            model: "iPhone 15 Pro",
+            osVersion: "26.0",
+            connection: "wired",
+            developerModeEnabled: true
+        )
+        XCTAssertFalse(device.isWireless)
+        XCTAssertTrue(device.detail.contains("USB"))
+    }
+
     func testVersionComparisonHandlesDifferentComponentCounts() {
         XCTAssertLessThan(AppVersion("v0.3.6"), AppVersion("0.4.0"))
         XCTAssertEqual(AppVersion("1.2"), AppVersion("1.2.0"))
@@ -114,7 +158,7 @@ final class WooFInstallerTests: XCTestCase {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let ipaURL = repositoryRoot
-            .appendingPathComponent("ios/build/installer/WooF.Play-0.3.8-development.ipa")
+            .appendingPathComponent("ios/build/installer/WooF.Play-0.3.9-development.ipa")
         guard FileManager.default.fileExists(atPath: ipaURL.path) else {
             throw XCTSkip("Локальный development IPA отсутствует.")
         }
@@ -122,7 +166,7 @@ final class WooFInstallerTests: XCTestCase {
         let prepared = try await IPAInspector.prepare(ipaURL)
         defer { prepared.removeTemporaryFiles() }
         XCTAssertEqual(prepared.inspection.bundleID, InstallerConstants.expectedBundleID)
-        XCTAssertEqual(prepared.inspection.version, "0.3.8")
+        XCTAssertEqual(prepared.inspection.version, "0.3.9")
         XCTAssertFalse(prepared.inspection.provisionedDevices.isEmpty)
     }
 
@@ -137,5 +181,14 @@ final class WooFInstallerTests: XCTestCase {
         XCTAssertTrue(message.contains("установлена"))
         XCTAssertTrue(message.contains("VPN и управление устройством"))
         XCTAssertTrue(message.contains("Доверять"))
+    }
+
+    func testWirelessBatchFailureReportsCompletedDevices() {
+        let message = InstallerError.wirelessBatchFailed(
+            successful: ["iPad"],
+            failures: ["iPhone: нет связи"]
+        ).localizedDescription
+        XCTAssertTrue(message.contains("Обновлено: iPad"))
+        XCTAssertTrue(message.contains("iPhone: нет связи"))
     }
 }

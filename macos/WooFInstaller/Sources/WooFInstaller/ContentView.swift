@@ -136,6 +136,25 @@ struct ContentView: View {
                 Text("Одно нажатие: проверка GitHub, безопасное обновление исходников, сборка и подпись через Xcode, установка и запуск на выбранном устройстве.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Divider()
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Все устройства по Wi‑Fi")
+                            .font(.headline)
+                        Text("Готово к обновлению: \(model.wirelessReadyDevices.count)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Обновить все по Wi‑Fi", systemImage: "wifi") {
+                        model.updateAllAvailableDevicesOverWiFi()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isBusy || model.repositoryPath.isEmpty)
+                }
+                Text("Список обновится автоматически. Для каждого доступного iPhone/iPad установщик по очереди соберёт, подпишет и установит обновление, не открывая приложение без вашей команды.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 if let device = model.selectedDevice {
                     HStack {
                         Label(
