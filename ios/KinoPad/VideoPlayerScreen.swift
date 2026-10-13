@@ -2,7 +2,6 @@ import AVKit
 import SwiftUI
 
 struct VideoPlayerScreen: View {
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @EnvironmentObject private var progressStore: PlaybackProgressStore
     @EnvironmentObject private var session: KinoPubSession
 
@@ -20,8 +19,6 @@ struct VideoPlayerScreen: View {
     @State private var audioOptions: [AVMediaSelectionOption] = []
     @State private var selectedAudioIndex: Int?
     @State private var hasStarted = false
-
-    private var isCompact: Bool { horizontalSizeClass == .compact }
 
     init(
         url: URL,
@@ -45,41 +42,25 @@ struct VideoPlayerScreen: View {
             VideoPlayer(player: player)
                 .ignoresSafeArea()
 
-            VStack(spacing: 12) {
-                HStack(spacing: 10) {
+            VStack {
+                HStack {
                     if let onClose {
                         Button(action: onClose) {
-                            if isCompact {
-                                Image(systemName: "xmark.circle.fill")
-                            } else {
-                                Label("Закрыть", systemImage: "xmark.circle.fill")
-                            }
+                            Image(systemName: "xmark")
+                                .font(.headline)
+                                .frame(width: 40, height: 40)
+                                .background(.ultraThinMaterial, in: Circle())
                         }
                         .accessibilityLabel("Закрыть")
                     }
-                    Text(title)
-                        .font(.headline)
-                        .lineLimit(1)
-                        .padding(.horizontal, 12)
-                        .frame(height: 38)
-                        .background(.black.opacity(0.72), in: Capsule())
                     Spacer()
                     audioMenu
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.black.opacity(0.72))
-                .padding()
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
 
                 Spacer()
-
-                if let compatibilityWarning {
-                    Label(compatibilityWarning, systemImage: "exclamationmark.triangle.fill")
-                        .font(.footnote)
-                        .foregroundStyle(.orange)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.black.opacity(0.8))
-                }
             }
         }
         .onAppear(perform: startPlayback)
@@ -103,23 +84,12 @@ struct VideoPlayerScreen: View {
                     }
                 }
             } label: {
-                if isCompact {
-                    Image(systemName: "speaker.wave.2.fill")
-                } else {
-                    Label(selectedAudioLabel, systemImage: "speaker.wave.2.fill")
-                        .lineLimit(1)
-                }
-            }
-            .accessibilityLabel("Выбрать озвучку")
-        } else if !audioTracks.isEmpty {
-            if isCompact {
                 Image(systemName: "speaker.wave.2.fill")
-                    .frame(height: 38)
-                    .accessibilityLabel("Озвучки")
-            } else {
-                Label("Озвучки", systemImage: "speaker.wave.2.fill")
-                    .frame(height: 38)
+                    .font(.headline)
+                    .frame(width: 40, height: 40)
+                    .background(.ultraThinMaterial, in: Circle())
             }
+            .accessibilityLabel("Выбрать озвучку: \(selectedAudioLabel)")
         }
     }
 
