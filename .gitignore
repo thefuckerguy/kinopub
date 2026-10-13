@@ -51,5 +51,9 @@ ios/build/
 ios/*.xcarchive/
 ios/*.ipa
 
+# macOS installer build output
+macos/WooFInstaller/.build/
+macos/WooFInstaller/build/
+
 # generated Windows resource (icon/version) — produced by `make winsyso` / CI
 cmd/kinopub-gui/*.syso
