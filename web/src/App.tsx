@@ -3,6 +3,9 @@ import clsx from "clsx";
 import {
   ArrowUpCircle,
   Bookmark,
+  Bell,
+  Eye,
+  LockKeyhole,
   ChevronRight,
   Clapperboard,
   Film,
@@ -28,6 +31,7 @@ import { TopsPage } from "./pages/Tops";
 import { DiscoverPage } from "./pages/Discover";
 import { CollectionsPage } from "./pages/Collections";
 import { WatchingPage } from "./pages/Watching";
+import { SavedListPage } from "./pages/SavedList";
 import { BookmarksPage } from "./pages/Bookmarks";
 import { HistoryPage } from "./pages/History";
 import { DownloadPage } from "./pages/Download";
@@ -63,7 +67,10 @@ const NAV: NavItem[][] = [
     { id: "collections", label: "Collections", icon: LayoutGrid },
   ],
   [
+    { id: "watchLater", label: "Watch later", icon: Eye },
+    { id: "personalViewing", label: "Personal viewing", icon: LockKeyhole },
     { id: "watching", label: "I'm watching", icon: PlayCircle },
+    { id: "subscriptions", label: "Subscriptions", icon: Bell },
     { id: "bookmarks", label: "Bookmarks", icon: Bookmark },
     { id: "history", label: "History", icon: History },
   ],
@@ -121,21 +128,22 @@ export default function App() {
       {/* Sidebar */}
       <aside
         className={clsx(
-          "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-white/[0.06] bg-ink-900/60 p-3 backdrop-blur-sm transition-[width] duration-200 md:flex",
-          collapsed ? "w-[68px]" : "w-60",
+          "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-white/[0.06] bg-ink-900/90 p-3 backdrop-blur-xl transition-[width] duration-200 md:flex",
+          collapsed ? "w-[76px]" : "w-64",
         )}
       >
         <div className={clsx("flex items-center", collapsed ? "flex-col gap-2" : "justify-between gap-2")}>
           {collapsed ? <BrandMark /> : <Brand />}
           <button
             onClick={toggleCollapsed}
+            aria-label={collapsed ? t("Expand sidebar") : t("Collapse sidebar")}
             className="rounded-lg p-1.5 text-slate-500 transition hover:bg-white/[0.06] hover:text-slate-300"
             title={collapsed ? t("Expand sidebar") : t("Collapse sidebar")}
           >
             {collapsed ? <PanelLeftOpen className="h-[18px] w-[18px]" /> : <PanelLeftClose className="h-[18px] w-[18px]" />}
           </button>
         </div>
-        <nav className="mt-6 flex-1">
+        <nav aria-label={t("Main navigation")} className="mt-6 min-h-0 flex-1 overflow-y-auto">
           {NAV.map((group, i) => (
             <div
               key={i}
@@ -187,13 +195,17 @@ export default function App() {
             brand, the same nav entries, and the update nudge. Desktop has no top
             bar at all: the rail already holds nav, account, health and updates,
             and the language switch now lives in Settings. */}
-        <div className="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2 md:hidden">
+        <div className="sticky top-0 z-30 border-b border-white/[0.06] bg-ink-900/95 px-3 py-3 backdrop-blur-xl md:hidden">
+          <div className="mb-3 flex items-center justify-between gap-3">
           <Brand compact />
-          <nav className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+          <button className="btn-ghost px-3 py-2" onClick={() => navigate("profile")} aria-current={page === "profile" ? "page" : undefined}><UserIcon className="h-4 w-4" />{t(kpauth.loggedIn ? "Profile" : "Sign in")}</button>
+          </div>
+          <nav aria-label={t("Main navigation")} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto pb-1">
             {[...NAV_FLAT, SETTINGS_NAV].map((n) => (
               <button
                 key={n.id}
                 onClick={() => navigate(n.id)}
+                aria-current={page === n.id ? "page" : undefined}
                 className={clsx(
                   "flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm",
                   page === n.id ? "bg-gold-500/[0.14] text-gold-300" : "text-slate-400",
@@ -233,8 +245,10 @@ export default function App() {
             <CollectionsPage onSignIn={() => navigate("profile")} onOpenSettings={() => navigate("settings")} />
           )}
           {page === "watching" && (
-            <WatchingPage onSignIn={() => navigate("profile")} onOpenSettings={() => navigate("settings")} />
+            <WatchingPage key="watching" onSignIn={() => navigate("profile")} onOpenSettings={() => navigate("settings")} />
           )}
+          {page === "subscriptions" && <WatchingPage key="subscriptions" subscribed onSignIn={() => navigate("profile")} onOpenSettings={() => navigate("settings")} />}
+          {(page === "watchLater" || page === "personalViewing") && <SavedListPage key={page} list={page} />}
           {page === "bookmarks" && (
             <BookmarksPage onSignIn={() => navigate("profile")} onOpenSettings={() => navigate("settings")} />
           )}
@@ -255,11 +269,9 @@ export default function App() {
   );
 }
 
-// BrandMark is the bare app icon. Single source of truth for the mark: the same
-// favicon.svg the browser tab uses and that package-macos.sh bakes into
-// AppIcon.icns. Stays visible even when the sidebar is collapsed.
+// Share the native WooF mascot with the browser tab and navigation.
 function BrandMark() {
-  return <img src="./favicon.svg" alt="kino.watch" className="h-9 w-9 shrink-0 rounded-xl shadow-glow" />;
+  return <img src="./woof-mascot.png" alt="WooF.Play" className="h-12 w-12 shrink-0 rounded-2xl object-contain" />;
 }
 
 function Brand({ compact }: { compact?: boolean }) {
@@ -267,9 +279,9 @@ function Brand({ compact }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
       <BrandMark />
-      <div className={clsx(compact && "hidden sm:block")}>
-        <div className="text-sm font-bold leading-tight text-slate-100">kino.watch</div>
-        <div className="text-[11px] leading-tight text-slate-500">{t("downloader")}</div>
+      <div>
+        <div className="text-lg font-extrabold leading-tight tracking-tight text-white">WooF<span className="text-gold-300">.Play</span></div>
+        <div className="text-[10px] uppercase leading-tight tracking-[0.18em] text-slate-400">{t("Cinema, your way")}</div>
       </div>
     </div>
   );
@@ -294,6 +306,8 @@ function SideNavItem({
   return (
     <button
       onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      aria-label={t(item.label)}
       title={collapsed ? t(item.label) : undefined}
       className={clsx("nav-item relative w-full", collapsed && "justify-center px-0", active && "nav-item-active")}
     >

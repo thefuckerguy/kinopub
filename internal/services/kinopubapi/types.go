@@ -6,7 +6,10 @@
 // HLS download pipeline unchanged.
 package kinopubapi
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // The well-known client credentials embedded in third-party kino.watch clients
 // (xbmc/forkplayer/etc.). The device-code flow authenticates the user's own
@@ -80,23 +83,24 @@ func (p Posters) Best() string {
 // Item is a catalog entry. The same struct serves both list/search summaries
 // and the full single-item response (fields absent in summaries stay zero).
 type Item struct {
-	ID            json.Number `json:"id"`
-	Type          string      `json:"type"`
-	Title         string      `json:"title"`
-	Subname       string      `json:"subname"` // original title, when provided separately
-	Year          int         `json:"year"`
-	Plot          string      `json:"plot"`
-	Director      string      `json:"director"` // comma-separated names
-	Cast          string      `json:"cast"`     // comma-separated names
-	Posters       Posters     `json:"posters"`
-	IMDBRating    float64     `json:"imdb_rating"`
-	KinopoiskRate float64     `json:"kinopoisk_rating"`
-	RatingVotes   int         `json:"rating"`            // kino.watch upvote count (NOT a score)
-	RatingPercent int         `json:"rating_percentage"` // kino.watch liked %, → local 0–10 score
-	Quality       int         `json:"quality"`           // max resolution (e.g. 2160, 1080)
-	Genres        []NamedID   `json:"genres"`
-	Countries     []NamedID   `json:"countries"`
-	Duration      Duration    `json:"duration"`
+	InWatchlist   FlexibleBool `json:"in_watchlist"`
+	ID            json.Number  `json:"id"`
+	Type          string       `json:"type"`
+	Title         string       `json:"title"`
+	Subname       string       `json:"subname"` // original title, when provided separately
+	Year          int          `json:"year"`
+	Plot          string       `json:"plot"`
+	Director      string       `json:"director"` // comma-separated names
+	Cast          string       `json:"cast"`     // comma-separated names
+	Posters       Posters      `json:"posters"`
+	IMDBRating    float64      `json:"imdb_rating"`
+	KinopoiskRate float64      `json:"kinopoisk_rating"`
+	RatingVotes   int          `json:"rating"`            // kino.watch upvote count (NOT a score)
+	RatingPercent int          `json:"rating_percentage"` // kino.watch liked %, → local 0–10 score
+	Quality       int          `json:"quality"`           // max resolution (e.g. 2160, 1080)
+	Genres        []NamedID    `json:"genres"`
+	Countries     []NamedID    `json:"countries"`
+	Duration      Duration     `json:"duration"`
 
 	// Movies expose their playable versions under videos; serials under seasons.
 	Videos  []Video  `json:"videos"`
@@ -114,6 +118,21 @@ type Item struct {
 	WatchedAt   int64  `json:"-"`
 	HistSeason  int    `json:"-"`
 	HistEpisode int    `json:"-"`
+}
+
+// FlexibleBool accepts the boolean, number and string forms used by the API.
+type FlexibleBool bool
+
+func (b *FlexibleBool) UnmarshalJSON(data []byte) error {
+	switch string(data) {
+	case "true", "1", "\"1\"", "\"true\"":
+		*b = true
+	case "false", "0", "\"0\"", "\"false\"", "null":
+		*b = false
+	default:
+		return fmt.Errorf("invalid boolean: %s", data)
+	}
+	return nil
 }
 
 // Duration carries the average/total runtime in seconds. The API may report

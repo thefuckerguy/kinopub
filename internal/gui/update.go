@@ -19,7 +19,7 @@ import (
 )
 
 // updateRepo is the GitHub repository whose releases this binary updates from.
-const updateRepo = "ZioSHik/kinopub-gui"
+const updateRepo = "thefuckerguy/kinopub"
 
 // UpdateStatus describes the result of an update check.
 type UpdateStatus struct {

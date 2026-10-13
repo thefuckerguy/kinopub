@@ -382,6 +382,52 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 	return c.doGet(ctx, path, q, out, false)
 }
 
+// post uses the same query contract as the mobile client. Retry only a definite
+// authentication rejection: retrying an uncertain mutation can apply it twice.
+func (c *Client) post(ctx context.Context, path string, q url.Values, out any) error {
+	for attempt := 0; attempt < 2; attempt++ {
+		token, err := c.ensureToken(ctx)
+		if err != nil {
+			return err
+		}
+		q.Set("access_token", token)
+		requestCtx, cancel := context.WithTimeout(ctx, apiRequestTimeout)
+		req, err := http.NewRequestWithContext(requestCtx, http.MethodPost, c.host+"/v1/"+path+"?"+q.Encode(), nil)
+		if err != nil {
+			cancel()
+			return err
+		}
+		req.Header.Set("Accept", "application/json")
+		resp, err := c.http.Do(req)
+		if err != nil {
+			cancel()
+			// url.Error includes the full request URL, including access_token.
+			var requestErr *url.Error
+			if errors.As(err, &requestErr) {
+				err = requestErr.Err
+			}
+			return fmt.Errorf("kino.watch API %s: %w", path, err)
+		}
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
+		resp.Body.Close()
+		cancel()
+		if readErr != nil {
+			return readErr
+		}
+		if resp.StatusCode == http.StatusUnauthorized && attempt == 0 {
+			if err := c.refreshIfCurrent(ctx, token); err != nil {
+				return err
+			}
+			continue
+		}
+		if resp.StatusCode >= 400 {
+			return fmt.Errorf("kino.watch API %s: HTTP %d: %s", path, resp.StatusCode, snippet(body))
+		}
+		return json.Unmarshal(body, out)
+	}
+	return ErrNotAuthenticated
+}
+
 func (c *Client) doGet(ctx context.Context, path string, q url.Values, out any, retried bool) error {
 	token, err := c.ensureToken(ctx)
 	if err != nil {

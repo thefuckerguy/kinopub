@@ -302,6 +302,9 @@ func (c *Client) Watching(ctx context.Context, typ string, subscribed bool, page
 		return ItemsPage{}, err
 	}
 	for i := range out.Items {
+		if subscribed {
+			out.Items[i].InWatchlist = true
+		}
 		if it := &out.Items[i]; it.Total > 0 {
 			it.Note = fmt.Sprintf("%d/%d", it.Watched, it.Total)
 			if it.New > 0 {
@@ -310,6 +313,50 @@ func (c *Client) Watching(ctx context.Context, typ string, subscribed bool, page
 		}
 	}
 	return out, nil
+}
+
+func (c *Client) BookmarkFolders(ctx context.Context, id string) ([]BookmarkFolder, error) {
+	var out struct {
+		Folders []BookmarkFolder `json:"folders"`
+	}
+	err := c.get(ctx, "bookmarks/get-item-folders", url.Values{"item": {id}}, &out)
+	return out.Folders, err
+}
+
+func (c *Client) MutateBookmark(ctx context.Context, action, item, folder, title string) error {
+	q := url.Values{}
+	if item != "" {
+		q.Set("item", item)
+	}
+	if folder != "" {
+		q.Set("folder", folder)
+	}
+	if title != "" {
+		q.Set("title", title)
+	}
+	var out struct {
+		Status int `json:"status"`
+	}
+	if err := c.post(ctx, "bookmarks/"+action, q, &out); err != nil {
+		return err
+	}
+	if out.Status >= 400 {
+		return fmt.Errorf("bookmark mutation rejected: status %d", out.Status)
+	}
+	return nil
+}
+
+func (c *Client) ToggleSubscription(ctx context.Context, id string) (bool, error) {
+	var out struct {
+		Watching *FlexibleBool `json:"watching"`
+	}
+	if err := c.get(ctx, "watching/togglewatchlist", url.Values{"id": {id}}, &out); err != nil {
+		return false, err
+	}
+	if out.Watching == nil {
+		return false, fmt.Errorf("subscription response missing watching state")
+	}
+	return bool(*out.Watching), nil
 }
 
 // CollectionItems returns the items inside a collection.

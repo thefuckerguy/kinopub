@@ -1,7 +1,8 @@
-import { memo, useEffect, type ReactNode } from "react";
+import { memo, useEffect, useId, useRef, type ReactNode } from "react";
 import clsx from "clsx";
 import { Film, Loader2, X } from "lucide-react";
 import { imgURL } from "../api";
+import { useI18n } from "../i18n";
 
 export function ProgressBar({
   value,
@@ -85,6 +86,7 @@ export const PosterImage = memo(function PosterImage({
 // to drift over moving content. Ref-counted so a modal stacked on another one
 // (e.g. the folder picker over Settings) doesn't unlock the page early.
 let scrollLocks = 0;
+const modalStack: HTMLElement[] = [];
 let savedScroll: { overflow: string; paddingRight: string; y: number } | null = null;
 
 function lockBodyScroll() {
@@ -115,6 +117,7 @@ export function Modal({
   children,
   wide,
   bare,
+  keyboardEnabled = true,
 }: {
   open: boolean;
   onClose: () => void;
@@ -124,18 +127,39 @@ export function Modal({
   /** Drop the default header and padding — the content draws its own chrome
       (used by the title card, which starts with a full-bleed hero). */
   bare?: boolean;
+  keyboardEnabled?: boolean;
 }) {
+  const dialog = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const { t } = useI18n();
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    if (!open || !keyboardEnabled) return;
+    const onKey = (e: KeyboardEvent) => {
+      const node = dialog.current;
+      if (!node || modalStack[modalStack.length - 1] !== node) return;
+      if (e.key === "Escape") { e.stopPropagation(); onClose(); }
+      if (e.key !== "Tab") return;
+      const controls = Array.from(node.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]')).filter((el) => !el.hidden && el.getAttribute("aria-hidden") !== "true");
+      const first = controls[0], last = controls[controls.length - 1];
+      if (!first) { e.preventDefault(); node.focus(); }
+      else if (e.shiftKey && (document.activeElement === first || document.activeElement === node)) { e.preventDefault(); last?.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, keyboardEnabled]);
 
   useEffect(() => {
     if (!open) return;
     lockBodyScroll();
-    return unlockBodyScroll;
+    const previous = document.activeElement as HTMLElement | null;
+    const node = dialog.current;
+    if (node) { modalStack.push(node); node.focus(); }
+    return () => {
+      if (node) { const index = modalStack.indexOf(node); if (index >= 0) modalStack.splice(index, 1); }
+      unlockBodyScroll();
+      if (previous?.isConnected) previous.focus();
+    };
   }, [open]);
 
   if (!open) return null;
@@ -149,16 +173,22 @@ export function Modal({
           backdrop and would otherwise close the modal mid-interaction. */}
       <div className="fixed inset-0 backdrop-blur-sm" onMouseDown={onClose} />
       <div
+        ref={dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className={clsx(
           "card relative my-auto w-full animate-fade-in",
           wide ? "max-w-3xl" : "max-w-lg",
           bare ? "overflow-hidden" : "p-6",
         )}
       >
+        {bare && <span id={titleId} className="sr-only">{title}</span>}
         {!bare && (
           <div className="mb-5 flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-slate-100">{title}</h2>
-            <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/[0.06] hover:text-slate-100">
+            <h2 id={titleId} className="text-lg font-semibold text-slate-100">{title}</h2>
+            <button onClick={onClose} aria-label={t("Close")} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/[0.06] hover:text-slate-100">
               <X className="h-5 w-5" />
             </button>
           </div>

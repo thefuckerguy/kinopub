@@ -2,6 +2,12 @@ package gui
 
 import "testing"
 
+func TestUpdateRepoMatchesPublishedReleases(t *testing.T) {
+	if updateRepo != "thefuckerguy/kinopub" {
+		t.Fatalf("updater repository = %q", updateRepo)
+	}
+}
+
 func TestIsNewer(t *testing.T) {
 	cases := []struct {
 		latest, current string

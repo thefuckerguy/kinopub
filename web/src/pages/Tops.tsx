@@ -120,11 +120,13 @@ export function TopsPage({
 function Header() {
   const { t } = useI18n();
   return (
-    <header>
-      <h1 className="text-2xl font-bold text-slate-100">{t("What's new")}</h1>
-      <p className="mt-1 text-sm text-slate-400">
-        {t("kino.watch's own charts. To browse by genre, rating and year, use the Catalog.")}
-      </p>
+    <header className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-br from-violet-500/15 via-ink-850 to-gold-500/10 p-6 sm:p-8">
+      <div className="relative z-10 max-w-[75%]">
+        <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-gold-300">WooF.Play · {t("What's new")}</p>
+        <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-4xl">{t("Find your next favorite")}</h1>
+        <p className="mt-3 text-sm leading-relaxed text-slate-300">{t("Fresh releases, hot picks and the titles everyone is watching.")}</p>
+      </div>
+      <img src="./woof-mascot.png" alt="" className="absolute -bottom-6 -right-5 h-44 w-44 object-contain opacity-70 sm:bottom-0 sm:right-6 sm:h-52 sm:w-52" />
     </header>
   );
 }

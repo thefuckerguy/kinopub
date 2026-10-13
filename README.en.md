@@ -1,257 +1,251 @@
 <p align="right"><a href="README.md">Русский</a> · <b>English</b></p>
 
-# kino.watch downloader · GUI
-
-**An app for downloading from [kino.watch](https://kino.watch), with a real interface.** Run it and it opens as a browser tab. Browse the catalog, preview a title right in the player, and download — movies and whole series, with every audio track and subtitle. While it downloads you see per-episode progress: speed and how much is left.
-
-You sign in once, with a short device code. Nothing heavy under it — a single file, no Electron, no Node (a Go server with the React UI built in). Run it and you're set.
-
 <p align="center">
-  <img src="docs/screenshots/catalog.png" alt="kino.watch downloader" width="900">
+  <img src="web/public/woof-mascot.png" alt="WooF.Play" width="160">
 </p>
 
+<h1 align="center">WooF.Play</h1>
+
+<p align="center"><b>A home cinema for kino.watch: a desktop web interface plus a native iPhone and iPad app.</b></p>
+
 <p align="center">
-  <img alt="Go" src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white">
-  <img alt="React" src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black">
-  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white">
-  <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind-3-38BDF8?logo=tailwindcss&logoColor=white">
-  <img alt="License" src="https://img.shields.io/badge/License-MIT-f59e0b">
+  <a href="https://github.com/thefuckerguy/kinopub/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/thefuckerguy/kinopub?display_name=tag&style=flat-square"></a>
+  <a href="https://github.com/thefuckerguy/kinopub/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/thefuckerguy/kinopub/ci.yml?branch=main&style=flat-square&label=tests"></a>
+  <img alt="Go" src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white&style=flat-square">
+  <img alt="React" src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black&style=flat-square">
+  <img alt="SwiftUI" src="https://img.shields.io/badge/SwiftUI-iPhone%20%2B%20iPad-0A84FF?logo=swift&logoColor=white&style=flat-square">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-MIT-7d47ff?style=flat-square"></a>
 </p>
 
----
+WooF.Play ships two clients in one repository:
 
-## Highlights
+- **Desktop app** — a single Go binary with an embedded React interface. It opens in your browser but runs entirely on your computer; Electron and a separate Node.js runtime are not required.
+- **WooF.Play for iPhone/iPad** — a native SwiftUI client with online playback, offline downloads, internal storage, and external-drive support.
 
-- 🎬 **Catalog browser** — search, tops, collections (подборки), genre/country filters, year and IMDb/Kinopoisk rating ranges, your watch history and "continue watching", and per-title detail with plot, cast, ratings and the full season/episode tree.
-- ▶️ **Built-in player** — preview any title right in the app before you download it. The stream goes through the app itself, so there's nothing to set up in the browser.
-- 🎬 **Full-fidelity downloads** — every audio track, every subtitle, whole multi-season series — picked from the catalog or pasted as a direct link.
-- ⚡ **Live progress** — per-episode and per-track percentages, speed, and ETA — all updating in real time.
-- ⏯️ **Control on the fly** — pause, cancel and retry each episode on its own; the queue is persisted to disk and survives a restart — downloads resume right where they stopped.
-- 🔊 **Pick your dubs** — choose which voiceovers to keep right on the title page (remembered for next time) or in a timed picker when downloading from a link; your choice is generalized across episodes.
-- 📚 **Library** — live downloads and everything already on disk on one page: sizes, resolutions and missing-file detection; open a finished file or reveal its folder.
-- 🔐 **Sign in once** — a short device-code login; tokens are stored encrypted and machine-bound. Local features (Library, Settings) work without signing in.
-- 🌍 **Bilingual** — English & Russian, switchable in one click (remembered between sessions).
-- 📦 **Single binary** — the UI is embedded; self-updates from GitHub releases.
+The web interface now shares the native app's visual language: deep navy surfaces, cyan/violet accents, and the WooF.Play mascot.
 
-## Screenshots
+> This project is not a public streaming website and does not provide content. Catalog and playback require your own kino.watch account with an active subscription.
 
-| Catalog browser | Title card |
+## Features
+
+### Catalog and playback
+
+- fresh, popular, and hot charts;
+- full catalog search with genre, country, year, IMDb/Kinopoisk, AC3, and subtitle filters;
+- collections, history, Watching, and a dedicated Subscriptions section;
+- title details with plot, cast, ratings, seasons, episodes, voiceovers, and similar titles;
+- built-in HLS player with resume and account progress sync;
+- local manual watched/unwatched marks for a movie or episode.
+
+### Lists and bookmarks
+
+- **Watch later** — a local list in the current browser;
+- **Personal viewing** — a private local list that is never sent to KinoPub;
+- subscribe and unsubscribe from films and series;
+- create and delete bookmark folders;
+- add and remove titles from bookmark folders;
+- quick actions on every catalog card and inside title details.
+
+Only the Personal viewing list itself is local. Playing an item still updates the regular kino.watch history and resume position for your account.
+
+### Downloads and offline library
+
+- films, individual episodes, full seasons, and multi-season series;
+- quality, voiceover, container, destination, proxy, and ffmpeg argument selection;
+- retain the requested audio tracks and subtitles;
+- title, episode, and track progress with speed and ETA;
+- pause, resume, cancel, retry, and prioritize;
+- a persistent queue that survives restarts and resumes unfinished work;
+- one offline library for live jobs and completed files, with search, filters, sizes, and resolutions;
+- open a file or reveal its folder; delete one episode or an entire title;
+- a built-in Doctor that inspects and repairs library state.
+
+### iPhone and iPad
+
+The native app additionally provides:
+
+- adaptive iPhone/iPad layouts and clean full-screen online/offline playback;
+- background HLS downloads with quality, voiceover, and storage selection;
+- `Files → On My iPhone/iPad → WooF.Play → Movies` internal storage;
+- folder and USB-drive access through security-scoped bookmarks;
+- compatibility with the desktop app's `.kinopub-state.json` metadata;
+- moving a drive between the desktop and iPhone/iPad without losing the library;
+- local resume recovery plus account progress sync;
+- checking for and downloading newly available episodes;
+- OAuth credentials stored in Keychain.
+
+Apple signing, Developer Mode, IPA installation, and trusted-device management remain in Xcode and **WooF Installer for macOS**. These native operations are intentionally not duplicated in the browser UI.
+
+## Quick start: desktop
+
+Download the appropriate artifact from the [latest release](https://github.com/thefuckerguy/kinopub/releases/latest).
+
+| Platform | Artifact |
 | --- | --- |
-| ![Catalog](docs/screenshots/catalog.png) | ![Title](docs/screenshots/title.png) |
+| macOS Apple Silicon | `kinopub-gui-darwin-arm64` or `.dmg` |
+| macOS Intel | `kinopub-gui-darwin-amd64` or `.dmg` |
+| Windows x64 | `kinopub-gui-windows-amd64.exe` |
+| Linux x64 | `kinopub-gui-linux-amd64` or AppImage |
+| Linux ARM64 | `kinopub-gui-linux-arm64` |
+| Android/Termux ARM64 | `kinopub-gui-android-arm64` |
 
-| Live downloads | Settings |
-| --- | --- |
-| ![Downloads](docs/screenshots/downloads.png) | ![Settings](docs/screenshots/settings.png) |
+On macOS/Linux:
 
----
-
-## Requirements
-
-- **ffmpeg** — the app uses it to merge video, audio and subtitles into one file. If it's installed (on your `PATH`), the app picks it up on its own; the Settings page shows a green or red check for `ffmpeg` and `ffprobe`.
-  ```bash
-  brew install ffmpeg          # macOS
-  sudo apt install ffmpeg      # Debian/Ubuntu
-  ```
-  ```powershell
-  winget install Gyan.FFmpeg   # Windows (or: choco install ffmpeg / scoop install ffmpeg)
-  ```
-  On Windows, make sure `ffmpeg.exe` and `ffprobe.exe` are on your `PATH` (the package managers above do this) — the Settings page confirms both are found.
-
-  **Don't want to install it by hand?** If ffmpeg is missing, hit **Settings → System → Install ffmpeg** (the same button is on the Download page) — the app downloads a ready-made build for your system and uses it from then on. Nothing is written into the system, no admin rights needed.
-- A browser (the app opens in whatever is your default).
-- A kino.watch account with an active subscription — without it there's no catalog, no playback, no downloads.
-
-## Install & run
-
-**Prebuilt clients for every major platform** — grab one from the [releases page](https://github.com/ZioSHik/kinopub-gui/releases):
-
-- 🍎 **macOS** — `.dmg` menu-bar app + standalone binaries, Apple Silicon (`arm64`) and Intel (`amd64`)
-- 🪟 **Windows** — `x64` (`amd64`) executable, no console window and an embedded icon
-- 🐧 **Linux** — `x64` (`amd64`, with a system-tray icon; also an `AppImage`) and `ARM64`
-- 🤖 **Android** — `ARM64` (no native tray, web UI as usual; runs under Termux)
-
-Same single binary everywhere — the React UI is embedded, so there is nothing else to install.
-
-### Option A — download a release binary
-
-Grab `kinopub-gui-*` for your platform from the [releases page](https://github.com/ZioSHik/kinopub-gui/releases), then run it:
-
-```bash
+```sh
 chmod +x kinopub-gui-darwin-arm64
 ./kinopub-gui-darwin-arm64
-# → opens http://127.0.0.1:8765 in your browser
 ```
 
-On **macOS** you can instead grab the `.dmg` and drag **KinoPub** to Applications — it runs as a menu-bar app (no Dock icon; the status-bar item has *Open* and *Quit*).
-
-The app isn't signed with an Apple certificate, so macOS blocks the first launch. Unblocking it is a one-time step:
-
-1. Drag **KinoPub** from the disk image into **Applications** and launch it from there.
-2. macOS will warn that it can't verify the app — dismiss the dialog (**Done**).
-3. Open **System Settings → Privacy & Security**, scroll down to the message about KinoPub and click **Open Anyway**, then confirm with your password or Touch ID.
-
-After that it opens normally. On older macOS (Sonoma and earlier) a right-click on the app → **Open** → **Open** is enough.
-
-On **Windows**, download `kinopub-gui-windows-amd64.exe` and run it (double-click or from a terminal):
+On Windows, double-click the `.exe` or launch it from PowerShell:
 
 ```powershell
 .\kinopub-gui-windows-amd64.exe
-# → opens http://127.0.0.1:8765 in your browser
 ```
 
-> The binary is unsigned, so SmartScreen / Gatekeeper may warn on first run — on Windows choose **More info → Run anyway**; on macOS follow the steps above (**Privacy & Security → Open Anyway**). Windows Firewall may also prompt; the server only listens locally, so allowing private-network access is enough. Credentials are stored encrypted at `~/.config/kinopub/credentials.enc` (`%USERPROFILE%\.config\kinopub\credentials.enc` on Windows).
+The app opens `http://127.0.0.1:8765`. Its server listens on loopback only and rejects requests originating from unrelated web pages.
 
-### Option B — build from source
+### ffmpeg
 
-You need Go 1.26+ and Node 20+ (only to build the UI; not at runtime).
+The downloader needs `ffmpeg` and `ffprobe` to combine video, audio, and subtitles:
 
-```bash
-git clone https://github.com/ZioSHik/kinopub-gui
-cd kinopub-gui
-make run          # builds the web UI, builds the GUI binary, and launches it
+```sh
+brew install ffmpeg          # macOS
+sudo apt install ffmpeg      # Debian / Ubuntu
 ```
 
-Or step by step:
+```powershell
+winget install Gyan.FFmpeg   # Windows
+```
 
-```bash
-make web          # build the React frontend into web/dist (embedded via go:embed)
-make gui          # build the ./kinopub-gui binary
+If ffmpeg is missing, open **Settings → System → Install ffmpeg**. WooF.Play installs a private build without administrator rights or changes to the system `PATH`.
+
+### First sign-in
+
+1. Open **Profile → Sign in**.
+2. Follow the kino.watch link shown in the app and enter the short device code.
+3. Once confirmed, the catalog, player, subscriptions, and bookmarks become available automatically.
+
+Desktop tokens are encrypted and machine-bound. Local pages — Library, Settings, Watch later, and Personal viewing — remain available without signing in.
+
+> If kino.watch is unavailable on your network, enable a VPN or configure an HTTP/HTTPS/SOCKS5 proxy in WooF.Play settings.
+
+### Updates
+
+Release builds check [this repository's releases](https://github.com/thefuckerguy/kinopub/releases), select the artifact for the current platform, verify its SHA-256 from `checksums.txt`, and offer **Update & restart**. Source builds are marked `dev` and do not replace themselves automatically.
+
+## Install on iPhone/iPad
+
+### Xcode
+
+1. Open [`ios/KinoPad.xcodeproj`](ios/KinoPad.xcodeproj) in Xcode.
+2. Select the **KinoPad** scheme.
+3. For a physical device, choose your Team under **Signing & Capabilities**.
+4. Build and run the app.
+
+See [`ios/README.md`](ios/README.md) and [`ios/TestFlight.md`](ios/TestFlight.md) for development IPA and TestFlight details.
+
+### WooF Installer for macOS
+
+[`macos/WooFInstaller`](macos/WooFInstaller) can fetch the current `main`, build, and install WooF.Play on your trusted iPhone/iPad over USB or Wi-Fi. It uses the supported Xcode and Apple workflows and does not bypass signing.
+
+Personal development/ad hoc IPA files are intentionally excluded from public releases because a provisioning profile may expose registered device identifiers.
+
+## Settings and data
+
+| Data | Location |
+| --- | --- |
+| Desktop settings | `~/.config/kinopub/gui.json` |
+| Encrypted desktop credentials | `~/.config/kinopub/credentials.enc` |
+| Download queue | the app configuration directory |
+| Per-title download state | `.kinopub-state.json` beside the files |
+| Web Watch later / Personal viewing | current browser `localStorage` |
+| iPhone/iPad OAuth credentials | Keychain |
+
+Local browser lists store card metadata only — never tokens, playback URLs, or credentials.
+
+## Build from source
+
+Requirements: Go 1.26.3+, Node.js 20+, npm, and ffmpeg for actual downloads.
+
+```sh
+git clone https://github.com/thefuckerguy/kinopub.git
+cd kinopub
+cd web && npm ci && cd ..
+make all
 ./kinopub-gui
 ```
 
-> **Distribution:** grab the prebuilt release binaries above, use `make`, or install from source with `go install github.com/ZioSHik/kinopub-gui/cmd/kinopub-gui@latest` — the module path matches this repo and the embedded `web/dist` is committed, so the install produces a complete, runnable binary. A plain `go build ./cmd/kinopub-gui` also works; `web/dist` is committed, and `make web` regenerates it.
+For UI development with hot reload:
 
-### Flags
-
-```
-kinopub-gui [flags]
-  -addr      address to listen on (default 127.0.0.1:8765;
-             falls back to an ephemeral port if taken)
-  -no-open   do not open the browser automatically
-  -version   print version and exit
+```sh
+make dev
+# http://localhost:5173
 ```
 
-The server listens on your computer only (`127.0.0.1`) — it's not a public service, nothing outside can reach it. It also rejects requests that don't come from its own page, so a random site in your browser can't quietly poke at it.
+Checks:
 
-### Updating
-
-Prebuilt releases update themselves. **Settings → Software update** shows the
-current version, and an **Update & restart** button when a newer GitHub release is
-out. Hit it and the app downloads the new build for your system, checks its
-checksum, replaces itself in place and restarts; your open browser tab reconnects
-on its own. (Builds from source are tagged `dev` and don't self-update — rebuild
-with `make`.)
-
----
-
-## Using it
-
-### 1. Sign in
-
-Local features — **Library, Settings, the folder picker** — work without signing in. The catalog, search, the in-app player and downloads need an account.
-
-Click **Sign in** (top-right or in the sidebar) and:
-
-1. The app shows a short **device code** and a link (`kino.watch/device`).
-2. Open that link in any browser where you're logged into kino.watch and enter the code.
-3. Confirm — the app detects it within a couple of seconds and you're in.
-
-The device shows up in your kino.watch account's device list as `kinopub-gui (your-hostname)`. Tokens are stored encrypted, tied to your computer, and kept at `~/.config/kinopub/credentials.enc`. Sign out any time from Settings.
-
-> **kino.watch is often unavailable without a VPN.** If sign-in, the catalog or downloads hang or time out, enable a VPN or set a proxy (Settings → Proxy, or per-download in Advanced options). The UI shows a reminder and detects timeouts.
-
-### 2. Find something
-
-Open **Catalog** to search and browse. Filter by type, genre, country, year range and IMDb/Kinopoisk rating; browse tops and collections; or jump back into your **history** and **continue-watching** rows. Open a title to see its details, ratings, available voiceovers and the full season/episode tree — and hit ▶ to **preview it in the built-in player** before downloading.
-
-You can also paste a kino.watch link directly on the **Download** page if you already have one.
-
-### 3. Download
-
-From a title's detail view (or the Download page), tick the seasons/episodes you want, pick a quality, and hit **Start download**. Progress shows up in the **Offline library**, in a "Downloading" section above what's on disk — overall, per-episode, and per track, with speed and ETA. Any episode can be paused, canceled or bumped ahead without touching its siblings; the queue survives an app restart and resumes where it stopped.
-
-An **Advanced options** panel covers the fine print: container (MKV / MP4), proxy (HTTP/HTTPS/SOCKS5), a *Force re-download* toggle, verbose logs, and an extra-ffmpeg-args field. It's pre-filled from your Settings, so most of the time you can leave it alone.
-
-### 4. Audio tracks
-
-You pick dubs/voiceovers right where you start the download:
-
-- **From a title's page** in the catalog — under **Voiceover**, tick the tracks you want to keep (with *Select all* / *Deselect all*). Your choice is remembered and pre-applied on the next titles; if your last voiceover isn't available here, the app prompts you to pick another.
-- **When downloading from a direct link** (the Download page), the picker pops up as a timed modal the moment the download starts: tick the tracks, *Only this* to keep one, or *Keep all* to take everything (also what the timer does on expiry).
-
-Your choice is generalized across episodes and matched by language: if a chosen dub is missing from some episode, the engine falls back to another track in the same language. By default every track is kept.
-
-### 5. Library
-
-The **Library** scans your output folders and shows everything you've downloaded — posters, sizes, and flags for files that have gone missing on disk. Live downloads sit on the same page, above what's on disk. Open or reveal any file straight from the list; an episode or a whole title you no longer need can be deleted from disk right there.
-
-### 6. Settings
-
-Defaults for new downloads (output folder, quality, container, proxy) plus extra folders to scan in the Library, the kino.watch sign-in, the ffmpeg installer and the software updater. Stored at `~/.config/kinopub/gui.json`.
-
-There is no speed to tune — the app works it out itself. The structure is fixed: one title at a time (the rest wait in a queue you can reorder) and two episodes in parallel inside it. More doesn't go faster — the link is already busy — it just splits it and multiplies connections to the CDN.
-
-How many segments are fetched at once, though, is tuned to your link at runtime: the downloader measures real throughput in 4-second windows and raises concurrency while it keeps improving; on a plateau it settles, and on a drop it steps back. Every half minute it probes again, because links change under you (Wi-Fi to Ethernet, a video call ending). The ceiling is 16, the floor is one slot per track so audio always downloads alongside video. If the CDN answers 429 or 503, concurrency is halved immediately and the pause comes from the `Retry-After` header — exactly what the server asked for, not a number we invented. On top of that, network failures are retried with growing backoff (1→2→4→8→16s).
-
----
-
-## How it works
-
-```
-┌──────────────────────────────┐        SSE (live progress)        ┌───────────────────────┐
-│  React + TS + Tailwind UI     │ ◀───────────────────────────────── │  Go HTTP server       │
-│  (embedded via go:embed)      │ ──── REST (commands) ────────────▶ │  internal/gui         │
-└──────────────────────────────┘                                    └─────┬───────────┬─────┘
-                                                                          │ drives    │ API
-                                                          ┌───────────────▼──┐   ┌────▼──────────────┐
-                                                          │ kinopub engine    │   │ kino.watch API      │
-                                                          │ internal/app +    │   │ services/kinopubapi│
-                                                          │ services (HLS,    │   │ (device login,    │
-                                                          │ downloader, …)    │   │ discovery, stream)│
-                                                          └───────────────────┘   └───────────────────┘
+```sh
+cd web && npm test && npm run build
+cd ..
+go test ./... -count=1
+go vet ./...
 ```
 
-The server doesn't run the engine as a separate process — it works with it directly, in one program: download progress streams to the browser live, the audio picker pops up and holds the download until you answer, and the engine's log shows up in each job's log view.
+Native client:
 
-Catalog and playback go through `internal/services/kinopubapi`, a small client for the kino.watch API: it keeps you signed in and refreshes the tokens on its own. The player gets video through `/api/hls`, a proxy inside the app itself; every link is signed, so it can't be reused as someone's open proxy.
-
-### Project layout
-
-```
-cmd/
-  kinopub-gui/      GUI server entrypoint (embeds the UI, opens the browser, macOS/Windows tray)
-internal/
-  app/kinopub/      engine composition root (App.Run)
-  domain/           ports & models
-  services/
-    kinopubapi/     kino.watch API client (device login, discovery, stream resolution)
-    downloader/     HLS + file download, ffmpeg muxing
-    hlsdownloader/  HLS manifest parsing & segment download
-    statestore/     per-series .kinopub-state.json
-    …               outputlayout, scheduler, progress, proxyprovider
-  gui/              REST + SSE server, job manager, discovery, HLS player proxy, reporter/chooser
-  lib/              credstore (encrypted creds), httpx (uTLS), logx, audiomenu, …
-web/                React + Vite + Tailwind frontend
-  dist/             built UI, embedded into the binary (go:embed)
+```sh
+cd ios
+xcodebuild -project KinoPad.xcodeproj \
+  -scheme KinoPad \
+  -destination 'platform=iOS Simulator,name=iPhone 17e' \
+  test
 ```
 
-## Development
+## Architecture
 
-```bash
-# Terminal 1 — run the Go server (serves the embedded UI + API)
-make gui && ./kinopub-gui
-
-# Terminal 2 — hot-reloading frontend with API proxy to :8765
-make dev            # → http://localhost:5173
+```text
+React + TypeScript + Tailwind
+            │ REST + SSE
+            ▼
+       local Go server
+       internal/gui
+        │         │
+        │         └── official kino.watch API
+        ▼
+   queue and downloader
+   HLS → ffmpeg → library
 ```
 
-`make vet` runs `go vet`, `make test` runs the test suite. CI builds the UI, vets, and runs the suite (including the race detector) on Linux, Windows and macOS.
+The React build lives in `web/dist` and is embedded through `go:embed`. Download progress arrives over SSE, commands use the local REST API, and the player receives HLS through signed one-use proxy URLs.
+
+```text
+cmd/kinopub-gui/          desktop entry point
+internal/app/kinopub/     engine composition
+internal/services/        API, HLS, downloader, scheduler, state
+internal/gui/             local HTTP API, SSE, library, updater
+web/                      WooF.Play React interface
+ios/KinoPad/              native iPhone/iPad SwiftUI client
+macos/WooFInstaller/      local iOS installation companion
+```
+
+## Security boundaries
+
+- the desktop server binds to `127.0.0.1` by default;
+- signed HLS URLs prevent the proxy from becoming an open proxy;
+- OAuth tokens never enter local browser lists;
+- the updater checks artifact size and SHA-256 before replacement;
+- the project does not disable or bypass Apple signing, Developer Mode, or device trust;
+- public releases do not contain personally signed IPA files.
+
+## Releases
+
+The current stable release is **v0.4.0**. A `v*` tag triggers GitHub Actions: the web UI is rebuilt, binaries for macOS, Windows, Linux, and Android/Termux are produced, `checksums.txt` is generated, and a GitHub Release is published.
 
 ## Credits
 
-- The download engine and the hard parts it grew from (HLS, retries, encrypted creds): **[niazlv/kinopub-downloader](https://github.com/niazlv/kinopub-downloader)**.
-- The web interface, the catalog/player integration, and the packaging (`cmd/kinopub-gui`, `internal/gui`, `internal/services/kinopubapi`, `web/`): this project.
+- Download-engine foundation: [niazlv/kinopub-downloader](https://github.com/niazlv/kinopub-downloader).
+- WooF.Play interfaces, catalog/player integration, native client, and packaging are maintained in this repository.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). The upstream engine is MIT-licensed; this repository preserves that license and adds the GUI under the same terms.
+MIT — see [LICENSE](LICENSE).

@@ -3,6 +3,8 @@ import clsx from "clsx";
 import {
   CalendarDays,
   Check,
+  Circle,
+  CircleCheck,
   ChevronDown,
   ChevronRight,
   Clock,
@@ -42,6 +44,8 @@ import { initialEpisodeSelection, isQueued, nothingLeftToQueue, queueCoverage } 
 import { Modal, PosterImage } from "./ui";
 import { Ratings } from "./Ratings";
 import { Player } from "./Player";
+import { TitleActions } from "./TitleActions";
+import { setWatched, useWatched } from "../lib/watched";
 
 const QUALITIES = ["", "2160p", "1080p", "720p", "480p", "360p"];
 
@@ -78,6 +82,12 @@ export function TitleDetail({
 }) {
   const { settings, ffmpeg, toast, jobs } = useApp();
   const { t } = useI18n();
+
+  const watchedFlag = useWatched(id);
+  const markWatched = (season: number, episode: number, current: boolean) => {
+    try { setWatched(id, season, episode, !current); }
+    catch { toast(t("Couldn't save this list. Browser storage is unavailable or full."), "error"); }
+  };
 
   const [detail, setDetail] = useState<DiscoverDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -393,7 +403,7 @@ export function TitleDetail({
 
   return (
     <>
-    <Modal open onClose={onClose} wide bare title={detail?.title || (loading ? t("Loading…") : t("Title"))}>
+    <Modal open onClose={onClose} keyboardEnabled={!playing} wide bare title={detail?.title || (loading ? t("Loading…") : t("Title"))}>
       {/* The card is a fixed-height column: the hero and the download bar stay
           put while only the middle section scrolls. Combined with the modal's
           body-scroll lock, nothing behind the card moves while it's open. */}
@@ -401,6 +411,7 @@ export function TitleDetail({
         <button
           onClick={onClose}
           title={t("Close")}
+          aria-label={t("Close")}
           className="absolute right-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full bg-ink-950/60 text-slate-300 backdrop-blur transition hover:bg-ink-950/90 hover:text-white"
         >
           <X className="h-4 w-4" />
@@ -498,6 +509,8 @@ export function TitleDetail({
 
             {/* ── Scrolling body ─────────────────────────────────────── */}
             <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain border-t border-white/[0.05] px-5 py-5 sm:px-6">
+              <TitleActions item={detail} />
+              {!isSerial && <button className="btn-ghost" aria-pressed={watchedFlag(0, 1)} onClick={() => markWatched(0, 1, watchedFlag(0, 1))}><CircleCheck className="h-4 w-4" />{t(watchedFlag(0, 1) ? "Mark unwatched (this browser)" : "Mark watched (this browser)")}</button>}
               {(plot || detail.director || detail.cast || detail.countries?.length) && (
                 <section className="space-y-3">
                   {plot && (
@@ -622,7 +635,7 @@ export function TitleDetail({
                     {detail.seasons!.map((s) => {
                       const open = openSeasons.has(s.number);
                       const total = s.episodes.length;
-                      const watched = s.episodes.filter((e) => e.watched).length;
+                      const watched = s.episodes.filter((e) => watchedFlag(e.season, e.episode, e.watched)).length;
                       const dled = s.episodes.filter((e) => downloaded.has(epKey(e.season, e.episode))).length;
                       const qd = s.episodes.filter((e) => queuedKeys.has(epKey(e.season, e.episode))).length;
                       // Episodes already in the queue can't be picked, so they are
@@ -709,6 +722,7 @@ export function TitleDetail({
                                 const have = downloaded.get(key);
                                 const dl = !!have;
                                 const qed = queuedKeys.has(key);
+                                const isWatched = watchedFlag(e.season, e.episode, e.watched);
                                 return (
                                   <div
                                     key={key}
@@ -724,7 +738,7 @@ export function TitleDetail({
                                     <button
                                       onClick={() => toggleEpisode(key)}
                                       disabled={qed}
-                                      title={qed ? t("In the queue") : e.watched ? t("Watched") : undefined}
+                                      title={qed ? t("In the queue") : isWatched ? t("Watched") : undefined}
                                       className="flex flex-1 items-center gap-2.5 px-3 py-2 text-left disabled:cursor-default"
                                     >
                                       <span
@@ -738,7 +752,7 @@ export function TitleDetail({
                                       <span
                                         className={clsx(
                                           "flex-1 truncate",
-                                          e.watched ? "text-slate-500" : on ? "text-slate-100" : "text-slate-400",
+                                          isWatched ? "text-slate-500" : on ? "text-slate-100" : "text-slate-400",
                                         )}
                                       >
                                         {e.title}
@@ -762,9 +776,10 @@ export function TitleDetail({
                                           <HardDrive className="h-3.5 w-3.5" />
                                         </span>
                                       )}
-                                      {e.watched && <Eye className="h-3.5 w-3.5 shrink-0 text-emerald-500/70" />}
+                                      {isWatched && <Eye className="h-3.5 w-3.5 shrink-0 text-emerald-500/70" />}
                                       {on && <Check className="h-3.5 w-3.5 shrink-0 text-gold-300" strokeWidth={3} />}
                                     </button>
+                                    <button className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-white/5" aria-pressed={isWatched} aria-label={t(isWatched ? "Mark unwatched (this browser)" : "Mark watched (this browser)")} title={t(isWatched ? "Mark unwatched (this browser)" : "Mark watched (this browser)")} onClick={() => markWatched(e.season, e.episode, isWatched)}>{isWatched ? <CircleCheck className="h-4 w-4 text-emerald-400" /> : <Circle className="h-4 w-4" />}</button>
                                     <button
                                       onClick={() => setPlaying({ season: e.season, episode: e.episode })}
                                       title={t("Watch")}

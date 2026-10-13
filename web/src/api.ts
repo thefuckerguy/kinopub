@@ -180,6 +180,8 @@ export interface StreamInfo {
 }
 
 export interface DiscoverItem {
+
+  subscribed?: boolean;
   id: string;
   type: string;
   title: string;
@@ -678,6 +680,17 @@ export const api = {
   discoverCollection: (id: string, page = 1) =>
     req<DiscoverPage>("GET", `/api/discover/collection?id=${encodeURIComponent(id)}&page=${page}`),
   discoverBookmarks: () => req<{ items: DiscoverBookmark[] }>("GET", "/api/discover/bookmarks"),
+  discoverBookmarkFolders: (id: string) => req<{ items: DiscoverBookmark[] }>("GET", `/api/discover/bookmark-folders?id=${encodeURIComponent(id)}`),
+  mutateBookmark: async (action: "create" | "remove-folder" | "add" | "remove-item", fields: { item?: string; folder?: string; title?: string }) => {
+    const result = await req<{ ok: boolean }>("POST", "/api/discover/bookmarks", { action, ...fields });
+    window.dispatchEvent(new Event("woof:bookmarks"));
+    return result;
+  },
+  toggleSubscription: async (id: string) => {
+    const result = await req<{ subscribed: boolean }>("POST", "/api/discover/subscription", { id });
+    window.dispatchEvent(new CustomEvent("woof:subscription", { detail: { id, ...result } }));
+    return result;
+  },
   discoverBookmark: (id: string, page = 1) =>
     req<DiscoverPage>("GET", `/api/discover/bookmark?id=${encodeURIComponent(id)}&page=${page}`),
   discoverGenres: (type?: string) =>

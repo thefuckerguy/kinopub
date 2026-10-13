@@ -18,6 +18,7 @@ import (
 
 // DiscoverItem is a catalog card.
 type DiscoverItem struct {
+	Subscribed      bool     `json:"subscribed"`
 	ID              string   `json:"id"`
 	Type            string   `json:"type"`
 	Title           string   `json:"title"`
@@ -142,6 +143,7 @@ func toDiscoverItem(it kinopubapi.Item) DiscoverItem {
 		original = it.Subname
 	}
 	return DiscoverItem{
+		Subscribed:      bool(it.InWatchlist),
 		ID:              it.ID.String(),
 		Type:            it.Type,
 		Title:           title,

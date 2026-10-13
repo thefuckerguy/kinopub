@@ -15,6 +15,9 @@ export type Page =
   | "library"
   | "collections"
   | "watching"
+  | "watchLater"
+  | "personalViewing"
+  | "subscriptions"
   | "bookmarks"
   | "history"
   | "doctor"
@@ -33,6 +36,9 @@ export const PAGES: Page[] = [
   "library",
   "collections",
   "watching",
+  "watchLater",
+  "personalViewing",
+  "subscriptions",
   "bookmarks",
   "history",
   "doctor",

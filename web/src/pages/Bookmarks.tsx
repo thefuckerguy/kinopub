@@ -1,5 +1,5 @@
-import { useCallback } from "react";
-import { Bookmark } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Bookmark, Plus, Trash2 } from "lucide-react";
 import { api, type DiscoverBookmark, type DiscoverItem } from "../api";
 import { useApp } from "../store";
 import { useI18n } from "../i18n";
@@ -23,6 +23,8 @@ export function BookmarksPage({
   const { kpauth, toast } = useApp();
   const { t } = useI18n();
   const loggedIn = kpauth.loggedIn;
+  const [newTitle, setNewTitle] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const route = useRoute();
   const folderId = route.bookmarkId ?? null;
@@ -52,6 +54,20 @@ export function BookmarksPage({
   // Whichever of the two lists is on screen drives the header, the loaders and
   // the infinite-scroll sentinel.
   const list = folderId ? feed : folders;
+  useEffect(() => {
+    const refresh = () => list.reload();
+    window.addEventListener("woof:bookmarks", refresh);
+    return () => window.removeEventListener("woof:bookmarks", refresh);
+  }, [list.reload]);
+  const mutate = async (action: "create" | "remove-folder" | "remove-item", fields: { title?: string; folder?: string; item?: string }) => {
+    setBusy(true);
+    try {
+      await api.mutateBookmark(action, fields);
+      setNewTitle("");
+      list.reload();
+    } catch (e: any) { toast(e.message || t("Request failed"), "error"); }
+    finally { setBusy(false); }
+  };
 
   const openFolder = (b: DiscoverBookmark) => {
     // The per-folder endpoint returns titles only, so stash the name for the
@@ -72,6 +88,11 @@ export function BookmarksPage({
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       <Header />
+
+      {!folderId && <form className="flex max-w-md gap-2" onSubmit={(e) => { e.preventDefault(); void mutate("create", { title: newTitle.trim() }); }}>
+        <input className="input" aria-label={t("Folder name")} placeholder={t("Folder name")} maxLength={200} value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+        <button className="btn-primary" disabled={busy || !newTitle.trim()} aria-label={t("Create folder")}><Plus className="h-4 w-4" /></button>
+      </form>}
 
       {folderId && (
         <div className="flex items-center gap-2 text-sm">
@@ -97,9 +118,13 @@ export function BookmarksPage({
         <ItemsGrid
           items={feed.items}
           onOpen={(it) => pushRoute({ page: "bookmarks", bookmarkId: folderId, itemId: it.id })}
+          onRemove={(it) => mutate("remove-item", { item: it.id, folder: folderId })}
+          removeDisabled={busy}
         />
       ) : (
-        <FoldersGrid folders={folders.items} onOpen={openFolder} />
+        <FoldersGrid folders={folders.items} onOpen={openFolder} busy={busy} onRemove={(folder) => {
+          if (window.confirm(t("Delete this bookmark folder? Titles themselves will be kept."))) void mutate("remove-folder", { folder: folder.id });
+        }} />
       )}
 
       {list.loading && list.items.length > 0 && <ListSpinner />}
@@ -108,7 +133,7 @@ export function BookmarksPage({
       {detailId && (
         <TitleDetail
           id={detailId}
-          onClose={() => dismiss({ page: "bookmarks", bookmarkId: folderId ?? undefined })}
+          onClose={() => { list.reload(); dismiss({ page: "bookmarks", bookmarkId: folderId ?? undefined }); }}
           // A "similar" pick swaps the card in place (one modal = one history
           // entry), so the X closes back to the folder, not through every card.
           onPick={(it) =>
@@ -134,18 +159,21 @@ function Header() {
 
 // FoldersGrid lists the account's bookmark folders. A folder has no poster (the
 // API returns only id/title/count), so each card is an icon tile.
-function FoldersGrid({ folders, onOpen }: { folders: DiscoverBookmark[]; onOpen: (b: DiscoverBookmark) => void }) {
+function FoldersGrid({ folders, onOpen, onRemove, busy }: { folders: DiscoverBookmark[]; onOpen: (b: DiscoverBookmark) => void; onRemove: (b: DiscoverBookmark) => void; busy: boolean }) {
   const { t } = useI18n();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
       {folders.map((b) => (
-        <button key={b.id} onClick={() => onOpen(b)} className="group text-left" title={b.title}>
+        <article key={b.id} className="card p-2">
+        <button onClick={() => onOpen(b)} className="group w-full text-left" title={b.title}>
           <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-gradient-to-br from-ink-700 to-ink-850 transition duration-200 group-hover:from-ink-600 group-hover:to-ink-800">
             <Bookmark className="h-8 w-8 text-gold-300/70" />
           </div>
           <p className="mt-1.5 truncate text-sm font-medium text-slate-200">{b.title}</p>
           <p className="text-[11px] text-slate-500">{t("{n} titles", { n: b.count })}</p>
         </button>
+        <button className="mt-2 rounded-lg p-2 text-slate-400 hover:bg-ember-500/10 hover:text-ember-400" disabled={busy} onClick={() => onRemove(b)} aria-label={`${t("Delete folder")}: ${b.title}`} title={t("Delete folder")}><Trash2 className="h-4 w-4" /></button>
+        </article>
       ))}
     </div>
   );

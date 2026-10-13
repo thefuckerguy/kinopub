@@ -1,8 +1,9 @@
-import { KeyRound, Loader2, RefreshCw, WifiOff } from "lucide-react";
+import { KeyRound, Loader2, RefreshCw, WifiOff, X } from "lucide-react";
 import { imgURL, type DiscoverItem } from "../api";
 import { useI18n } from "../i18n";
 import { EmptyState } from "./ui";
 import { Ratings } from "./Ratings";
+import { TitleActions } from "./TitleActions";
 
 // The poster grid and its companions (skeleton, error panel, sign-in gate) are
 // shared by every kino.watch-backed page — Catalog, Bookmarks and History — so a
@@ -17,14 +18,15 @@ export function badgeOf(
   return it.subtitle || "";
 }
 
-export function ItemsGrid({ items, onOpen }: { items: DiscoverItem[]; onOpen: (it: DiscoverItem) => void }) {
+export function ItemsGrid({ items, onOpen, onRemove, removeDisabled }: { items: DiscoverItem[]; onOpen: (it: DiscoverItem) => void; onRemove?: (it: DiscoverItem) => void; removeDisabled?: boolean }) {
   const { t } = useI18n();
   return (
-    <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {items.map((it) => {
         const badge = badgeOf(it, t);
         return (
-          <button key={it.id} onClick={() => onOpen(it)} className="group text-left" title={it.originalTitle || it.title}>
+          <article key={it.id} className="catalog-card group min-w-0">
+          <button onClick={() => onOpen(it)} className="w-full text-left" title={it.originalTitle || it.title}>
             <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-ink-700 to-ink-850">
               <img
                 src={imgURL(it.poster)}
@@ -42,13 +44,15 @@ export function ItemsGrid({ items, onOpen }: { items: DiscoverItem[]; onOpen: (i
             {/* Every meta line is always present (nbsp filler) and the ratings row
                 has a reserved fixed height, so cards are uniformly tall and the
                 grid rows don't jump between titles that have more/less metadata. */}
-            <p className="mt-1.5 truncate text-xs font-semibold text-slate-100">{it.title}</p>
+            <p className="mt-2 truncate text-sm font-semibold text-slate-100">{it.title}</p>
             <p className="truncate text-[11px] text-slate-500">{it.originalTitle || " "}</p>
             <p className="text-[11px] text-slate-500">{it.year || " "}</p>
             <div className="mt-1 flex h-5 items-center overflow-hidden">
               <Ratings item={it} />
             </div>
           </button>
+          <div className="mt-1 flex items-center justify-between border-t border-white/5 pt-1"><TitleActions item={it} compact />{onRemove && <button className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:text-ember-400" disabled={removeDisabled} aria-label={`${t("Remove from folder")}: ${it.title}`} title={t("Remove from folder")} onClick={() => onRemove(it)}><X className="h-4 w-4" /></button>}</div>
+          </article>
         );
       })}
     </div>
@@ -59,7 +63,7 @@ export function ItemsGrid({ items, onOpen }: { items: DiscoverItem[]; onOpen: (i
 // its first batch loads. `wide` matches the 16:9 folder/collection tiles.
 export function SkeletonGrid({ wide }: { wide?: boolean }) {
   return (
-    <div className={wide ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4" : "grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6"}>
+    <div className={wide ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4" : "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"}>
       {Array.from({ length: wide ? 8 : 18 }).map((_, i) => (
         <div key={i} className="animate-pulse">
           <div className={`${wide ? "aspect-video" : "aspect-[2/3]"} w-full rounded-xl bg-white/[0.05]`} />

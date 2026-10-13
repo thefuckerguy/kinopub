@@ -16,13 +16,17 @@
   body {
     @apply bg-ink-950 text-slate-200 font-sans antialiased;
     background-image:
-      radial-gradient(900px 500px at 12% -8%, rgba(245, 158, 11, 0.10), transparent 60%),
-      radial-gradient(800px 600px at 100% 0%, rgba(244, 63, 94, 0.07), transparent 55%);
+      radial-gradient(900px 500px at 12% -8%, rgba(0, 214, 250, 0.09), transparent 60%),
+      radial-gradient(800px 600px at 100% 0%, rgba(125, 71, 255, 0.13), transparent 55%);
     background-attachment: fixed;
   }
 
   ::selection {
-    background: rgba(245, 158, 11, 0.3);
+    background: rgba(0, 214, 250, 0.3);
+  }
+  :focus-visible { outline: 2px solid #00d6fa; outline-offset: 4px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   }
 
   /* Slim, themed scrollbars. */
@@ -88,8 +92,10 @@
   }
 
   .nav-item-active {
-    @apply bg-gold-500/[0.12] text-gold-300 hover:bg-gold-500/[0.16] hover:text-gold-200;
+    @apply border border-gold-500/20 bg-gradient-to-r from-gold-500/[0.14] to-violet-500/[0.10] text-gold-300 hover:bg-gold-500/[0.16] hover:text-gold-200;
   }
+
+  .catalog-card { @apply rounded-2xl border border-white/[0.06] bg-ink-850/50 p-2 transition hover:border-gold-500/25 hover:bg-ink-800/70; }
 
   /* In-player slider (seek / volume): gold-filled track up to --val, gold thumb. */
   .player-range {
