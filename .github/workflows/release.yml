@@ -4,6 +4,15 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Existing release tag to build and publish"
+        required: true
+        type: string
+
+env:
+  RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
 
 permissions:
   contents: write
@@ -30,7 +39,7 @@ jobs:
 
       - name: Build .app, .dmg and updater binaries (arm64 + amd64)
         env:
-          VERSION: ${{ github.ref_name }}
+          VERSION: ${{ env.RELEASE_VERSION }}
         run: |
           set -euo pipefail
           mkdir -p out
@@ -70,7 +79,7 @@ jobs:
 
       - name: Build GUI binaries
         env:
-          VERSION: ${{ github.ref_name }}
+          VERSION: ${{ env.RELEASE_VERSION }}
         run: |
           set -euo pipefail
           mkdir -p out
@@ -96,7 +105,7 @@ jobs:
       - name: Build Linux AppImage (amd64, tray)
         continue-on-error: true
         env:
-          VERSION: ${{ github.ref_name }}
+          VERSION: ${{ env.RELEASE_VERSION }}
         run: |
           set -euxo pipefail
           APPDIR=AppDir
@@ -143,5 +152,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ env.RELEASE_VERSION }}
           generate_release_notes: true
           files: dist/*
