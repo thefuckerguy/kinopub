@@ -4,6 +4,8 @@ enum InstallerConstants {
     static let expectedBundleID = "app.kinopad.KinoPad"
     static let githubRepository = "thefuckerguy/kinopub"
     static let githubURL = URL(string: "https://github.com/thefuckerguy/kinopub")!
+    static let appStoreConnectURL = URL(string: "https://appstoreconnect.apple.com/apps")!
+    static let developerEnrollmentURL = URL(string: "https://developer.apple.com/programs/enroll/")!
 }
 
 struct IOSDevice: Identifiable, Hashable {

@@ -125,4 +125,10 @@ final class WooFInstallerTests: XCTestCase {
         XCTAssertEqual(prepared.inspection.version, "0.3.6")
         XCTAssertFalse(prepared.inspection.provisionedDevices.isEmpty)
     }
+
+    func testPasscodeProtectedDeveloperModeMessageKeepsSecurityEnabled() {
+        let message = InstallerError.developerModePasscodeProtected.localizedDescription
+        XCTAssertTrue(message.contains("Не отключайте код‑пароль"))
+        XCTAssertTrue(message.contains("Конфиденциальность и безопасность"))
+    }
 }

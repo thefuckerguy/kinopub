@@ -68,7 +68,7 @@ struct ContentView: View {
             }
             Button("Отмена", role: .cancel) { }
         } message: {
-            Text("Подключите устройство кабелем. Apple может перезагрузить его; после запуска подтвердите режим в «Настройки → Конфиденциальность и безопасность → Режим разработчика».")
+            Text("Подключите устройство кабелем. Если на iPhone установлен код‑пароль, Apple потребует включить переключатель вручную в «Настройки → Конфиденциальность и безопасность → Режим разработчика». Затем подтвердите перезагрузку и повторное включение код‑паролем.")
         }
     }
 
@@ -133,7 +133,7 @@ struct ContentView: View {
                         .foregroundStyle(device.developerModeEnabled ? Color.green : Color.orange)
                         Spacer()
                         if !device.developerModeEnabled {
-                            Button("Включить…") {
+                            Button("Включить / инструкция…") {
                                 showsDeveloperModeConfirmation = true
                             }
                             .disabled(model.isBusy)
@@ -238,6 +238,26 @@ struct ContentView: View {
                     .disabled(model.githubRelease?.ipaAsset == nil)
                 }
                 Text("Скачанный пакет проверяется по подписи, bundle ID и контрольной сумме GitHub. Для публичного репозитория рекомендуется публиковать IPA только при осознанном решении: development‑профиль содержит список разрешённых устройств.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Divider()
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("TestFlight").font(.headline)
+                        Text("Установка без кабеля и Developer Mode · сборка доступна 90 дней")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Вступить в программу", systemImage: "person.badge.plus") {
+                        model.openDeveloperEnrollment()
+                    }
+                    Button("App Store Connect", systemImage: "paperplane") {
+                        model.openAppStoreConnect()
+                    }
+                }
+                Text("Текущая семидневная Personal Team‑подпись не поддерживает TestFlight. После активации платной Apple Developer Program используйте ios/scripts/build-testflight-archive.sh и загрузите архив через Xcode Organizer или Xcode Cloud.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

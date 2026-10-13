@@ -18,6 +18,7 @@ enum InstallerError: LocalizedError {
     case invalidDownloadDigest
     case malformedResponse
     case developerModeRequiresUSB
+    case developerModePasscodeProtected
 
     var errorDescription: String? {
         switch self {
@@ -39,6 +40,8 @@ enum InstallerError: LocalizedError {
         case .malformedResponse: return "Получен неожиданный ответ от системной команды или GitHub."
         case .developerModeRequiresUSB:
             return "Для включения режима разработчика подключите и разблокируйте устройство кабелем USB. После перезагрузки подтвердите режим на самом устройстве."
+        case .developerModePasscodeProtected:
+            return "Apple не разрешает Mac автоматически включить Developer Mode на iPhone с код‑паролем. Не отключайте код‑пароль: на iPhone откройте «Настройки → Конфиденциальность и безопасность → Режим разработчика», включите переключатель, перезагрузитесь и подтвердите действие код‑паролем."
         }
     }
 }
@@ -132,6 +135,14 @@ final class InstallerModel: ObservableObject {
         NSWorkspace.shared.open(InstallerConstants.githubURL)
     }
 
+    func openAppStoreConnect() {
+        NSWorkspace.shared.open(InstallerConstants.appStoreConnectURL)
+    }
+
+    func openDeveloperEnrollment() {
+        NSWorkspace.shared.open(InstallerConstants.developerEnrollmentURL)
+    }
+
     func refreshDevices() {
         runOperation("Ищу подключённые устройства…") { [weak self] in
             guard let self else { return "" }
@@ -199,6 +210,9 @@ final class InstallerModel: ObservableObject {
             guard result.status == 0 else {
                 if result.output.localizedCaseInsensitiveContains("not connected") {
                     throw InstallerError.developerModeRequiresUSB
+                }
+                if result.output.localizedCaseInsensitiveContains("passcode set") {
+                    throw InstallerError.developerModePasscodeProtected
                 }
                 throw CommandFailure.failed(
                     executable: "devmodectl",
