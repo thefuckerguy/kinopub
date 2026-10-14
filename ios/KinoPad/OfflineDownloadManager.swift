@@ -79,8 +79,12 @@ final class OfflineDownloadManager: NSObject, ObservableObject {
 
     private unowned let library: MediaLibraryStore
     private let locations = DownloadLocationRegistry()
+    private static var backgroundSessionPrefix: String {
+        Bundle.main.bundleIdentifier ?? "app.xigua7648.gray5696"
+    }
+
     private lazy var downloadSession: AVAssetDownloadURLSession = {
-        let identifier = "app.kinopad.KinoPad.offline-hls"
+        let identifier = "\(Self.backgroundSessionPrefix).offline-hls"
         let configuration = URLSessionConfiguration.background(withIdentifier: identifier)
         configuration.allowsCellularAccess = true
         configuration.isDiscretionary = false
@@ -92,7 +96,8 @@ final class OfflineDownloadManager: NSObject, ObservableObject {
         )
     }()
     private lazy var fileDownloadSession: URLSession = {
-        let configuration = URLSessionConfiguration.background(withIdentifier: "app.kinopad.KinoPad.offline-files")
+        let identifier = "\(Self.backgroundSessionPrefix).offline-files"
+        let configuration = URLSessionConfiguration.background(withIdentifier: identifier)
         configuration.allowsCellularAccess = true
         configuration.isDiscretionary = false
         configuration.sessionSendsLaunchEvents = true

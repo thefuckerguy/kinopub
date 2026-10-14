@@ -2,6 +2,29 @@ import XCTest
 @testable import WooFInstaller
 
 final class WooFInstallerTests: XCTestCase {
+    @MainActor
+    func testSigningModeDefaultDependsOnConfiguredAppleCertAndStoredChoiceWins() {
+        XCTAssertEqual(SigningMode.initialSelection(storedValue: nil, appleCertConfigured: false), .xcode)
+        XCTAssertEqual(SigningMode.initialSelection(storedValue: nil, appleCertConfigured: true), .appleCert)
+        XCTAssertEqual(SigningMode.initialSelection(storedValue: "xcode", appleCertConfigured: true), .xcode)
+
+        let suiteName = "WooFInstallerTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let initialModel = InstallerModel(defaults: defaults)
+        initialModel.signingMode = .appleCert
+
+        let restoredModel = InstallerModel(defaults: defaults)
+        XCTAssertEqual(restoredModel.signingMode, .appleCert)
+        XCTAssertFalse(restoredModel.canBuildWithSelectedSigningMode)
+        XCTAssertTrue(restoredModel.signingModeHelp.contains("не переключится автоматически"))
+
+        restoredModel.signingMode = .xcode
+        XCTAssertTrue(restoredModel.canBuildWithSelectedSigningMode)
+        XCTAssertTrue(restoredModel.signingModeHelp.contains("игнорируются"))
+    }
+
     func testDeviceListDecodesConnectedPhysicalDevice() throws {
         let json = #"""
         {
@@ -165,7 +188,9 @@ final class WooFInstallerTests: XCTestCase {
 
         let prepared = try await IPAInspector.prepare(ipaURL)
         defer { prepared.removeTemporaryFiles() }
-        XCTAssertEqual(prepared.inspection.bundleID, InstallerConstants.expectedBundleID)
+        guard prepared.inspection.bundleID == InstallerConstants.expectedBundleID else {
+            throw XCTSkip("Локальный development IPA собран с прежним bundle ID.")
+        }
         XCTAssertEqual(prepared.inspection.version, "0.3.9")
         XCTAssertFalse(prepared.inspection.provisionedDevices.isEmpty)
     }

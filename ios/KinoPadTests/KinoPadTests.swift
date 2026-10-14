@@ -47,6 +47,48 @@ final class KinoPadTests: XCTestCase {
         XCTAssertTrue(try decoder.decode(FlexibleBool.self, from: Data("\"true\"".utf8)).value)
     }
 
+    func testDeviceNotificationPostsIdentityAsJSONBody() async throws {
+        RequestCaptureURLProtocol.receivedRequest = nil
+        RequestCaptureURLProtocol.receivedBody = nil
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RequestCaptureURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        let api = KinoPubAPI(
+            tokens: AuthTokens(
+                accessToken: "access-token",
+                refreshToken: "refresh-token",
+                expiresAt: .distantFuture
+            ),
+            session: session
+        )
+        defer { session.invalidateAndCancel() }
+
+        try await api.notifyDevice(
+            title: "WooF.Play · iPad",
+            hardware: "iPad · Denis’s iPad · iOS 26.1",
+            software: "WooF.Play 1.2.3"
+        )
+
+        let request = try XCTUnwrap(RequestCaptureURLProtocol.receivedRequest)
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.url?.path, "/v1/device/notify")
+        XCTAssertEqual(
+            URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)?
+                .queryItems?.first(where: { $0.name == "access_token" })?.value,
+            "access-token"
+        )
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
+        let payload = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: try XCTUnwrap(RequestCaptureURLProtocol.receivedBody))
+                as? [String: String]
+        )
+        XCTAssertEqual(payload, [
+            "title": "WooF.Play · iPad",
+            "hardware": "iPad · Denis’s iPad · iOS 26.1",
+            "software": "WooF.Play 1.2.3"
+        ])
+    }
+
     func testBestManifestPrefersHighestResolutionAndH264() throws {
         let data = Data(
             """
@@ -478,4 +520,41 @@ final class KinoPadTests: XCTestCase {
         let removed = PersonalViewingStore(defaults: defaults)
         XCTAssertTrue(removed.items.isEmpty)
     }
+}
+
+private final class RequestCaptureURLProtocol: URLProtocol {
+    nonisolated(unsafe) static var receivedRequest: URLRequest?
+    nonisolated(unsafe) static var receivedBody: Data?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        Self.receivedRequest = request
+        if let body = request.httpBody {
+            Self.receivedBody = body
+        } else if let stream = request.httpBodyStream {
+            stream.open()
+            defer { stream.close() }
+            var body = Data()
+            var buffer = [UInt8](repeating: 0, count: 1024)
+            while stream.hasBytesAvailable {
+                let count = stream.read(&buffer, maxLength: buffer.count)
+                if count <= 0 { break }
+                body.append(buffer, count: count)
+            }
+            Self.receivedBody = body
+        }
+        let response = HTTPURLResponse(
+            url: request.url!,
+            statusCode: 200,
+            httpVersion: "HTTP/1.1",
+            headerFields: ["Content-Type": "application/json"]
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data("{}".utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
 }

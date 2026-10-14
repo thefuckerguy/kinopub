@@ -177,16 +177,26 @@ private struct DeviceRemovalResponse: Decodable {
     let current: FlexibleBool?
 }
 
+private struct DeviceNotifyRequest: Encodable {
+    let title: String
+    let hardware: String
+    let software: String
+}
+
 actor KinoPubAPI {
     private let session: URLSession
     private var tokens: AuthTokens?
 
-    init(tokens: AuthTokens?) {
-        let configuration = URLSessionConfiguration.default
-        configuration.timeoutIntervalForRequest = 20
-        configuration.timeoutIntervalForResource = 30
-        configuration.waitsForConnectivity = false
-        session = URLSession(configuration: configuration)
+    init(tokens: AuthTokens?, session: URLSession? = nil) {
+        if let session {
+            self.session = session
+        } else {
+            let configuration = URLSessionConfiguration.default
+            configuration.timeoutIntervalForRequest = 20
+            configuration.timeoutIntervalForResource = 30
+            configuration.waitsForConnectivity = false
+            self.session = URLSession(configuration: configuration)
+        }
         self.tokens = tokens
     }
 
@@ -396,11 +406,12 @@ actor KinoPubAPI {
     func notifyDevice(title: String, hardware: String, software: String) async throws {
         let _: IgnoredResponse = try await post(
             path: "device/notify",
-            query: [
-                URLQueryItem(name: "title", value: title),
-                URLQueryItem(name: "hardware", value: hardware),
-                URLQueryItem(name: "software", value: software)
-            ]
+            query: [],
+            body: try JSONEncoder().encode(DeviceNotifyRequest(
+                title: title,
+                hardware: hardware,
+                software: software
+            ))
         )
     }
 
@@ -483,6 +494,7 @@ actor KinoPubAPI {
     private func post<T: Decodable>(
         path: String,
         query: [URLQueryItem],
+        body: Data? = nil,
         isRetry: Bool = false
     ) async throws -> T {
         let accessToken = try await validAccessToken()
@@ -498,13 +510,17 @@ actor KinoPubAPI {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw KinoPubAPIError.invalidResponse
         }
         if http.statusCode == 401, !isRetry {
             _ = try await refreshTokens()
-            return try await post(path: path, query: query, isRetry: true)
+            return try await post(path: path, query: query, body: body, isRetry: true)
         }
         guard (200..<300).contains(http.statusCode) else {
             throw KinoPubAPIError.server(http.statusCode, bodySnippet(data))

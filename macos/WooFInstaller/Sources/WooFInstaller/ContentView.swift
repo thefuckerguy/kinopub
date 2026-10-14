@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var model: InstallerModel
     @State private var showsDeveloperModeConfirmation = false
+    @State private var certificatePassword = ""
 
     var body: some View {
         NavigationSplitView {
@@ -43,6 +44,8 @@ struct ContentView: View {
                     header
                     statusCard
                     installationCard
+                    appleCertCard
+                    altServerCard
                     updatesCard
                     if !model.lastLog.isEmpty { logCard }
                 }
@@ -57,6 +60,7 @@ struct ContentView: View {
         }
         .task {
             if model.devices.isEmpty { model.refreshDevices() }
+            model.refreshAppleCertStatus()
         }
         .confirmationDialog(
             "Включить режим разработчика?",
@@ -118,6 +122,16 @@ struct ContentView: View {
     private var installationCard: some View {
         GroupBox("Установка") {
             VStack(alignment: .leading, spacing: 14) {
+                Picker("Способ подписи", selection: $model.signingMode) {
+                    ForEach(SigningMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .disabled(model.isBusy)
+                Text(model.signingModeHelp)
+                    .font(.caption)
+                    .foregroundStyle(model.signingMode == .appleCert && !model.appleCertConfigured ? Color.orange : Color.secondary)
                 LabeledContent("Устройство") {
                     Text(model.selectedDevice?.name ?? "не выбрано")
                 }
@@ -127,13 +141,21 @@ struct ContentView: View {
                 Button {
                     model.automaticallyInstallOrUpdate()
                 } label: {
-                    Label("Автоматически установить / обновить", systemImage: "arrow.triangle.2.circlepath.circle.fill")
+                    Label("Установить / обновить на выбранном устройстве", systemImage: "arrow.triangle.2.circlepath.circle.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(model.isBusy || model.selectedDevice == nil || model.repositoryPath.isEmpty)
-                Text("Одно нажатие: проверка GitHub, безопасное обновление исходников, сборка и подпись через Xcode, установка и запуск на выбранном устройстве.")
+                .disabled(model.isBusy || model.selectedDevice == nil || model.repositoryPath.isEmpty || !model.canBuildWithSelectedSigningMode)
+                Text("Одно нажатие: проверка GitHub, безопасное обновление исходников, сборка, подпись, установка и запуск на выбранном устройстве.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("Собрать локальную версию и установить (\(model.signingMode.title))", systemImage: "hammer.fill") {
+                    model.buildLocalChangesAndInstall()
+                }
+                .buttonStyle(.bordered)
+                .disabled(model.isBusy || model.selectedDevice == nil || model.repositoryPath.isEmpty || !model.canBuildWithSelectedSigningMode)
+                Text("Собирает текущие локальные исходники, подписывает выбранным способом и устанавливает приложение на выбранное устройство. Git pull не выполняется.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Divider()
@@ -150,7 +172,7 @@ struct ContentView: View {
                         model.updateAllAvailableDevicesOverWiFi()
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(model.isBusy || model.repositoryPath.isEmpty)
+                    .disabled(model.isBusy || model.repositoryPath.isEmpty || !model.canBuildWithSelectedSigningMode)
                 }
                 Text("Список обновится автоматически. Для каждого доступного iPhone/iPad установщик по очереди соберёт, подпишет и установит обновление, не открывая приложение без вашей команды.")
                     .font(.caption)
@@ -213,15 +235,89 @@ struct ContentView: View {
                     buttonTitle: "Выбрать…",
                     action: model.chooseRepository
                 )
-                Text("Для нового телефона Xcode автоматически добавит устройство в ваш Apple Developer‑профиль, пересоберёт и подпишет приложение.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Button("Собрать и установить через Xcode", systemImage: "hammer.fill") {
-                    model.buildAndInstall()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(model.isBusy || model.selectedDevice == nil || model.repositoryPath.isEmpty)
             }
+            .padding(6)
+        }
+    }
+
+    private var appleCertCard: some View {
+        GroupBox("Подпись AppleCert") {
+            VStack(alignment: .leading, spacing: 12) {
+                if let status = model.appleCertStatus {
+                    LabeledContent("Профиль") { Text(status.profileName) }
+                    LabeledContent("Team ID") { Text(status.teamID) }
+                    LabeledContent("Действует до") {
+                        Text(status.expirationDate.formatted(date: .long, time: .shortened))
+                            .foregroundStyle(status.expirationDate <= Date() ? Color.orange : Color.secondary)
+                    }
+                } else {
+                    Text(model.appleCertConfigured
+                         ? "Сохранённые данные требуют проверки или замены."
+                         : "Сертификат ещё не добавлен. Выберите способ подписи в селекторе выше.")
+                        .foregroundStyle(.secondary)
+                }
+                pathRow(title: "Сертификат .p12", path: model.certificatePath,
+                        buttonTitle: "Выбрать…", action: model.chooseAppleCertificate)
+                pathRow(title: "Профиль .mobileprovision", path: model.profilePath,
+                        buttonTitle: "Выбрать…", action: model.chooseAppleProfile)
+                SecureField("Пароль файла .p12", text: $certificatePassword)
+                    .textFieldStyle(.roundedBorder)
+                HStack {
+                    Button(model.appleCertConfigured ? "Заменить AppleCert" : "Сохранить AppleCert") {
+                        let password = certificatePassword
+                        certificatePassword = ""
+                        model.configureAppleCert(password: password)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isBusy || model.certificatePath.isEmpty || model.profilePath.isEmpty)
+                    if model.appleCertConfigured {
+                        Button("Удалить AppleCert", role: .destructive) { model.removeAppleCert() }
+                            .disabled(model.isBusy)
+                    }
+                }
+                Text("Пароль хранится в macOS Keychain; .p12 и профиль — в закрытой папке Application Support. При сборке сертификат импортируется во временную связку ключей, которая удаляется после подписи. Подписанный IPA остаётся доступен в поле выше.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            .font(.callout)
+            .padding(6)
+        }
+    }
+
+    private var altServerCard: some View {
+        GroupBox("Обновление подписи через AltStore (7 дней)") {
+            VStack(alignment: .leading, spacing: 12) {
+                LabeledContent("AltServer") { Text(model.altServerDescription) }
+                LabeledContent("AltStore Classic") { Text(model.altStoreDescription) }
+                HStack {
+                    Button("Установить / обновить AltServer", systemImage: "arrow.down.app") {
+                        model.prepareAltServer()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Button("Открыть AltServer", systemImage: "menubar.rectangle") {
+                        model.launchAltServer()
+                    }
+                }
+                .disabled(model.isBusy)
+                Text("Установщик скачает официальный AltServer, проверит подпись и установит его отдельно в «Программы». Загрузка начинается только по этой кнопке.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("1. Подключите устройство по USB, подтвердите доверие. В Finder включите «Показывать этот iPhone/iPad при подключении к Wi‑Fi»; на устройстве включите режим разработчика.")
+                Text("2. В значке AltServer в строке меню выберите Install AltStore → ваше устройство. Apple Account, пароль и код 2FA вводите только в AltServer; WooF Installer их не получает и не сохраняет.")
+                Text("3. Выберите устройство и IPA, затем нажмите «Передать IPA в AltStore». Установщик скопирует файл через доверенное USB/Wi‑Fi соединение и откроет импорт в AltStore Classic. На устройстве подтвердите установку; Apple Account, пароль и 2FA вводите только в AltStore. Установка через Xcode сама по себе не подключает обновление подписи AltStore.")
+                Text("4. Включите фоновое обновление для AltStore в настройках iOS и Background Refresh в AltStore. Mac должен быть включён, AltServer запущен, устройства — в одной сети. Проверьте Refresh All до истечения 7 дней: iOS может отложить фоновую задачу.")
+                HStack {
+                    Button("Передать IPA в AltStore", systemImage: "iphone.and.arrow.forward") {
+                        model.sendIPAtoAltStore()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isBusy || model.ipaPath.isEmpty || model.selectedDevice == nil)
+                    Button("Показать IPA в Finder", systemImage: "folder") { model.revealIPAForAltStore() }
+                        .disabled(model.isBusy || model.ipaPath.isEmpty)
+                    Button("Инструкция AltStore", systemImage: "safari") { model.openAltStoreGuide() }
+                }
+                Text("Это обновление подписи установленной через AltStore версии. Новую версию WooF.Play нужно импортировать в AltStore отдельно. Автоматическое продление не гарантируется, если Mac или устройство недоступны.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            .font(.callout)
             .padding(6)
         }
     }

@@ -1,4 +1,5 @@
 import AVKit
+import MediaPlayer
 import SwiftUI
 import UIKit
 
@@ -15,6 +16,7 @@ struct VideoPlayerScreen: View {
 
     @State private var player = AVPlayer()
     @State private var timeObserver: Any?
+    @State private var controlsTimeObserver: Any?
     @State private var lastRemoteSync = Date.distantPast
     @State private var audioGroup: AVMediaSelectionGroup?
     @State private var audioOptions: [AVMediaSelectionOption] = []
@@ -22,6 +24,10 @@ struct VideoPlayerScreen: View {
     @State private var hasStarted = false
     @State private var controlsVisible = true
     @State private var controlsHideTask: Task<Void, Never>?
+    @State private var playbackPosition: Double = 0
+    @State private var playbackDuration: Double = 0
+    @State private var seekPosition: Double = 0
+    @State private var isSeeking = false
 
     init(
         url: URL,
@@ -49,7 +55,7 @@ struct VideoPlayerScreen: View {
                 .onTapGesture(perform: toggleControls)
 
             if controlsVisible {
-                VStack {
+                VStack(spacing: 0) {
                     HStack {
                         if let onClose {
                             Button(action: onClose) {
@@ -68,6 +74,10 @@ struct VideoPlayerScreen: View {
                     .padding(.top, 12)
 
                     Spacer()
+
+                    playbackControls
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 28)
                 }
                 .transition(.opacity)
             }
@@ -78,6 +88,104 @@ struct VideoPlayerScreen: View {
         }
         .onDisappear(perform: stopPlayback)
         .persistentSystemOverlays(.hidden)
+    }
+
+    private var playbackControls: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 38) {
+                Button {
+                    seek(by: -15)
+                } label: {
+                    Image(systemName: "gobackward.15")
+                        .font(.system(size: 30, weight: .regular))
+                        .frame(width: 52, height: 52)
+                }
+                .accessibilityLabel("Назад на 15 секунд")
+
+                Button {
+                    if player.timeControlStatus == .playing {
+                        player.pause()
+                    } else {
+                        player.play()
+                    }
+                    showControlsTemporarily()
+                } label: {
+                    Image(systemName: player.timeControlStatus == .playing ? "pause.fill" : "play.fill")
+                        .font(.system(size: 34, weight: .semibold))
+                        .frame(width: 64, height: 64)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .accessibilityLabel(player.timeControlStatus == .playing ? "Пауза" : "Воспроизвести")
+
+                Button {
+                    seek(by: 15)
+                } label: {
+                    Image(systemName: "goforward.15")
+                        .font(.system(size: 30, weight: .regular))
+                        .frame(width: 52, height: 52)
+                }
+                .accessibilityLabel("Вперёд на 15 секунд")
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 10) {
+                Text(timeLabel(isSeeking ? seekPosition : playbackPosition))
+                    .monospacedDigit()
+                    .frame(minWidth: 44, alignment: .trailing)
+                Slider(value: Binding(
+                    get: { isSeeking ? seekPosition : playbackPosition },
+                    set: { seekPosition = $0 }
+                ), in: 0...max(playbackDuration, 1), onEditingChanged: { editing in
+                    isSeeking = editing
+                    if editing {
+                        controlsHideTask?.cancel()
+                    } else {
+                        performSeek(to: seekPosition)
+                        showControlsTemporarily()
+                    }
+                })
+                .tint(.white)
+                .accessibilityLabel("Перемотка")
+                Text(timeLabel(playbackDuration))
+                    .monospacedDigit()
+                    .frame(minWidth: 44, alignment: .leading)
+            }
+            .font(.caption)
+
+            HStack(spacing: 8) {
+                Image(systemName: "speaker.fill")
+                    .font(.caption)
+                SystemVolumeSlider()
+                    .frame(width: 150, height: 28)
+                Image(systemName: "speaker.wave.3.fill")
+                    .font(.caption)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Громкость устройства")
+        }
+        .foregroundStyle(.white)
+        .padding(.vertical, 18)
+        .padding(.horizontal, 20)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+    }
+
+    private func timeLabel(_ time: Double) -> String {
+        guard time.isFinite, time >= 0 else { return "0:00" }
+        let seconds = Int(time)
+        return seconds >= 3600
+            ? String(format: "%d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60)
+            : String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
+
+    private func seek(by offset: Double) {
+        performSeek(to: min(max(player.currentTime().seconds + offset, 0), max(playbackDuration, 0)))
+        showControlsTemporarily()
+    }
+
+    private func performSeek(to position: Double) {
+        let target = min(max(position, 0), max(playbackDuration, 0))
+        player.seek(to: CMTime(seconds: target, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
+        playbackPosition = target
     }
 
     @ViewBuilder
@@ -116,6 +224,16 @@ struct VideoPlayerScreen: View {
         let item = AVPlayerItem(url: url)
         player.replaceCurrentItem(with: item)
         loadAudioOptions(for: item)
+        controlsTimeObserver = player.addPeriodicTimeObserver(
+            forInterval: CMTime(seconds: 0.25, preferredTimescale: 600),
+            queue: .main
+        ) { currentTime in
+            Task { @MainActor in
+                if !isSeeking { playbackPosition = currentTime.seconds.isFinite ? currentTime.seconds : 0 }
+                let duration = player.currentItem?.duration.seconds ?? 0
+                playbackDuration = duration.isFinite && duration > 0 ? duration : 0
+            }
+        }
         if let context {
             let resume = progressStore.resumePosition(for: context)
             if resume > 5 {
@@ -171,6 +289,10 @@ struct VideoPlayerScreen: View {
         if let timeObserver {
             player.removeTimeObserver(timeObserver)
             self.timeObserver = nil
+        }
+        if let controlsTimeObserver {
+            player.removeTimeObserver(controlsTimeObserver)
+            self.controlsTimeObserver = nil
         }
         player.pause()
         player.replaceCurrentItem(with: nil)
@@ -241,6 +363,17 @@ struct VideoPlayerScreen: View {
         }
         return "Аудиодорожка \(index + 1)"
     }
+}
+
+private struct SystemVolumeSlider: UIViewRepresentable {
+    func makeUIView(context: Context) -> MPVolumeView {
+        let volumeView = MPVolumeView()
+        volumeView.showsRouteButton = false
+        volumeView.showsVolumeSlider = true
+        return volumeView
+    }
+
+    func updateUIView(_ uiView: MPVolumeView, context: Context) {}
 }
 
 private struct PlayerSurface: UIViewRepresentable {

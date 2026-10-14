@@ -335,7 +335,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.3.9;
-				PRODUCT_BUNDLE_IDENTIFIER = app.kinopad.KinoPad;
+				PRODUCT_BUNDLE_IDENTIFIER = app.xigua7648.gray5696;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -371,7 +371,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.3.9;
-				PRODUCT_BUNDLE_IDENTIFIER = app.kinopad.KinoPad;
+				PRODUCT_BUNDLE_IDENTIFIER = app.xigua7648.gray5696;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

@@ -3,10 +3,26 @@ import CryptoKit
 import Foundation
 import UniformTypeIdentifiers
 
+enum SigningMode: String, CaseIterable, Identifiable {
+    case appleCert
+    case xcode
+
+    var id: String { rawValue }
+    var title: String { self == .appleCert ? "AppleCert" : "Xcode" }
+
+    static func initialSelection(storedValue: String?, appleCertConfigured: Bool) -> SigningMode {
+        if let storedValue, let storedMode = SigningMode(rawValue: storedValue) {
+            return storedMode
+        }
+        return appleCertConfigured ? .appleCert : .xcode
+    }
+}
+
 enum InstallerError: LocalizedError {
     case noDevice
     case noIPA
     case noRepository
+    case appleCertRequired
     case invalidRepository
     case wrongBundleID(String)
     case expiredProfile
@@ -30,6 +46,7 @@ enum InstallerError: LocalizedError {
         case .noDevice: return "Выберите подключённый iPhone или iPad."
         case .noIPA: return "Сначала выберите IPA‑файл."
         case .noRepository: return "Выберите папку репозитория kinopub."
+        case .appleCertRequired: return "Для этой команды требуется настроенный AppleCert. Сохраните сертификат и provisioning profile."
         case .invalidRepository: return "В выбранной папке не найден ios/KinoPad.xcodeproj."
         case let .wrongBundleID(bundleID):
             return "Этот IPA имеет bundle ID \(bundleID), ожидался \(InstallerConstants.expectedBundleID)."
@@ -77,16 +94,30 @@ final class InstallerModel: ObservableObject {
     @Published private(set) var statusMessage = "Подключите iPhone или iPad и нажмите «Обновить список»."
     @Published private(set) var isError = false
     @Published private(set) var lastLog = ""
+    @Published private(set) var altServerDescription = "не проверено"
+    @Published private(set) var altStoreDescription = "не проверено на устройстве"
     @Published var repositoryPath: String
     @Published var ipaPath: String
+    @Published var signingMode: SigningMode {
+        didSet { defaults.set(signingMode.rawValue, forKey: "signingMode") }
+    }
+    @Published private(set) var appleCertStatus: AppleCertStatus?
+    @Published private(set) var appleCertConfigured = AppleCertSigning.isConfigured
+    @Published var certificatePath = ""
+    @Published var profilePath = ""
 
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
 
-    init() {
-        let preferences = UserDefaults.standard
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        let preferences = defaults
         let discoveredRepository = Self.discoverRepositoryPath()
         repositoryPath = preferences.string(forKey: "repositoryPath") ?? discoveredRepository
         ipaPath = preferences.string(forKey: "ipaPath") ?? ""
+        signingMode = SigningMode.initialSelection(
+            storedValue: preferences.string(forKey: "signingMode"),
+            appleCertConfigured: AppleCertSigning.isConfigured
+        )
         if preferences.string(forKey: "repositoryPath") == nil, !discoveredRepository.isEmpty {
             preferences.set(discoveredRepository, forKey: "repositoryPath")
         }
@@ -113,6 +144,21 @@ final class InstallerModel: ObservableObject {
         guard let installedVersion else { return "не установлено" }
         if let installedBuild { return "\(installedVersion) (\(installedBuild))" }
         return installedVersion
+    }
+
+    var canBuildWithSelectedSigningMode: Bool {
+        signingMode == .xcode || appleCertConfigured
+    }
+
+    var signingModeHelp: String {
+        switch signingMode {
+        case .appleCert:
+            return appleCertConfigured
+                ? "Используется сохранённый AppleCert; выбранное устройство должно быть включено в provisioning profile."
+                : "AppleCert выбран, но сохранённые данные отсутствуют. Добавьте сертификат и профиль или выберите Xcode. Сборка не переключится автоматически."
+        case .xcode:
+            return "Используется Xcode Automatic Signing. Сохранённые AppleCert данные игнорируются."
+        }
     }
 
     var releaseDescription: String {
@@ -157,6 +203,68 @@ final class InstallerModel: ObservableObject {
         inspectSelectedIPA()
     }
 
+    func chooseAppleCertificate() {
+        let panel = NSOpenPanel()
+        panel.title = "Выберите сертификат AppleCert (.p12)"
+        panel.allowedContentTypes = [.init(filenameExtension: "p12")!]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        certificatePath = url.path
+    }
+
+    func chooseAppleProfile() {
+        let panel = NSOpenPanel()
+        panel.title = "Выберите matching provisioning profile (.mobileprovision)"
+        panel.allowedContentTypes = [.init(filenameExtension: "mobileprovision")!]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        profilePath = url.path
+    }
+
+    func refreshAppleCertStatus() {
+        Task {
+            do {
+                appleCertStatus = try await AppleCertSigning.status()
+                appleCertConfigured = appleCertStatus != nil
+            } catch {
+                appleCertConfigured = false
+                statusMessage = error.localizedDescription
+                isError = true
+            }
+        }
+    }
+
+    func configureAppleCert(password: String) {
+        runOperation("Проверяю AppleCert сертификат и профиль…") { [weak self] in
+            guard let self else { return "" }
+            guard !self.certificatePath.isEmpty, !self.profilePath.isEmpty else {
+                throw AppleCertError.missingCredentials
+            }
+            let status = try await AppleCertSigning.configure(
+                p12URL: URL(fileURLWithPath: self.certificatePath),
+                password: password,
+                profileURL: URL(fileURLWithPath: self.profilePath)
+            )
+            self.appleCertStatus = status
+            self.appleCertConfigured = true
+            self.signingMode = .appleCert
+            self.certificatePath = ""
+            self.profilePath = ""
+            return "AppleCert настроен: \(status.profileName). AppleCert выбран для следующих сборок."
+        }
+    }
+
+    func removeAppleCert() {
+        runOperation("Удаляю сохранённые AppleCert данные…") { [weak self] in
+            guard let self else { return "" }
+            try AppleCertSigning.remove()
+            self.appleCertStatus = nil
+            self.appleCertConfigured = false
+            self.signingMode = .xcode
+            return "AppleCert данные удалены. Следующие сборки будут подписываться через Xcode."
+        }
+    }
+
     func openRepositoryOnGitHub() {
         NSWorkspace.shared.open(InstallerConstants.githubURL)
     }
@@ -169,6 +277,72 @@ final class InstallerModel: ObservableObject {
         NSWorkspace.shared.open(InstallerConstants.developerEnrollmentURL)
     }
 
+    func prepareAltServer() {
+        runOperation("Готовлю AltServer для обновления подписи…") { [weak self] in
+            guard let self else { return "" }
+            self.altServerDescription = "проверка…"
+            do {
+                let installation = try await AltServerSetup.prepare { self.statusMessage = $0 }
+                self.altServerDescription = "\(installation.version) (\(installation.build)) · подпись проверена"
+                try await AltServerSetup.launch(installation)
+                return "AltServer запущен в строке меню. Установите AltStore через его меню и введите Apple Account / код 2FA только в AltServer. Затем установите IPA WooF.Play через AltStore на iPhone/iPad — только после этого AltStore сможет обновлять подпись в фоне."
+            } catch {
+                self.altServerDescription = "настройка не завершена"
+                throw error
+            }
+        }
+    }
+
+    func launchAltServer() {
+        runOperation("Проверяю подпись и открываю AltServer…") { [weak self] in
+            guard let self else { return "" }
+            guard let installation = try await AltServerSetup.installed() else {
+                self.altServerDescription = "не установлен"
+                throw AltServerError.notInstalled
+            }
+            try await AltServerSetup.launch(installation)
+            self.altServerDescription = "\(installation.version) (\(installation.build)) · подпись проверена"
+            return "AltServer открыт в строке меню. Для фонового обновления установите WooF.Play через AltStore и оставьте Mac с запущенным AltServer в одной сети с устройством."
+        }
+    }
+
+    func openAltStoreGuide() {
+        NSWorkspace.shared.open(AltServerPolicy.guideURL)
+    }
+
+    func revealIPAForAltStore() {
+        guard !ipaPath.isEmpty, FileManager.default.fileExists(atPath: ipaPath) else {
+            statusMessage = InstallerError.noIPA.localizedDescription
+            isError = true
+            return
+        }
+        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: ipaPath)])
+    }
+
+    func sendIPAtoAltStore() {
+        runOperation("Проверяю AltStore Classic и готовлю IPA…") { [weak self] in
+            guard let self else { return "" }
+            let device = try self.requireDevice()
+            guard device.developerModeEnabled else { throw InstallerError.developerModeDisabled }
+            self.altStoreDescription = "не проверено на устройстве"
+            let installation = try await AltStoreTransfer.discover(on: device)
+            self.altStoreDescription = "\(installation.version ?? "Classic") · \(device.name)"
+            let source = try self.selectedIPAURL()
+            let snapshot = try await Task.detached(priority: .userInitiated) {
+                try AltStoreIPASnapshot.create(from: source)
+            }.value
+            defer { snapshot.remove() }
+            let prepared = try await IPAInspector.prepare(snapshot.url)
+            defer { prepared.removeTemporaryFiles() }
+            // AltStore resigns the IPA: the old profile's expiry and UDIDs do not apply.
+            try self.validateBundle(prepared.inspection)
+            self.ipaInspection = prepared.inspection
+            self.statusMessage = "Передаю IPA в AltStore на \(device.name)…"
+            try await AltStoreTransfer.send(snapshot: snapshot, to: device, installation: installation)
+            return "IPA передан, AltStore открыт на \(device.name). Подтвердите импорт и установку на устройстве; если потребуется, войдите в Apple Account внутри AltStore. Это ещё не подтверждение установки WooF.Play."
+        }
+    }
+
     func refreshDevices() {
         runOperation("Ищу подключённые устройства…") { [weak self] in
             guard let self else { return "" }
@@ -177,6 +351,7 @@ final class InstallerModel: ObservableObject {
     }
 
     func selectedDeviceChanged() {
+        altStoreDescription = "не проверено на устройстве"
         guard selectedDevice != nil else {
             installedVersion = nil
             installedBuild = nil
@@ -215,12 +390,12 @@ final class InstallerModel: ObservableObject {
         }
     }
 
-    func buildAndInstall() {
-        runOperation("Xcode регистрирует устройство и собирает WooF.Play…") { [weak self] in
+    func buildLocalChangesAndInstall() {
+        runOperation("Собираю текущие локальные исходники с \(signingMode.title)…") { [weak self] in
             guard let self else { return "" }
             let device = try self.requireDevice()
             try await self.buildAndInstallInternal(on: device)
-            return "Свежая сборка WooF.Play установлена на \(device.name)."
+            return "Текущая локальная сборка WooF.Play установлена на \(device.name). Git-репозиторий не изменялся."
         }
     }
 
@@ -490,6 +665,19 @@ final class InstallerModel: ObservableObject {
         on device: IOSDevice,
         launchAfterInstall: Bool = true
     ) async throws {
+        switch signingMode {
+        case .appleCert:
+            guard AppleCertSigning.isConfigured else { throw InstallerError.appleCertRequired }
+            try await buildSignAndInstallWithAppleCert(on: device, launchAfterInstall: launchAfterInstall)
+        case .xcode:
+            try await buildAndInstallWithXcode(on: device, launchAfterInstall: launchAfterInstall)
+        }
+    }
+
+    private func buildAndInstallWithXcode(
+        on device: IOSDevice,
+        launchAfterInstall: Bool
+    ) async throws {
         let repository = try requireRepository()
         let projectURL = repository.appendingPathComponent("ios/KinoPad.xcodeproj")
         let derivedDataURL = try applicationSupportDirectory()
@@ -508,7 +696,8 @@ final class InstallerModel: ObservableObject {
                 "-destination", "platform=iOS,id=\(device.id)",
                 "-derivedDataPath", derivedDataURL.path,
                 "-allowProvisioningUpdates",
-                "-allowProvisioningDeviceRegistration"
+                "-allowProvisioningDeviceRegistration",
+                "CODE_SIGN_STYLE=Automatic"
             ],
             currentDirectory: repository
         )
@@ -531,6 +720,45 @@ final class InstallerModel: ObservableObject {
         if selectedDeviceID == device.id {
             try await refreshInstalledVersionInternal()
         }
+    }
+
+    private func buildSignAndInstallWithAppleCert(
+        on device: IOSDevice,
+        launchAfterInstall: Bool
+    ) async throws {
+        try await AppleCertSigning.validateSaved(for: device.id)
+        let repository = try requireRepository()
+        let projectURL = repository.appendingPathComponent("ios/KinoPad.xcodeproj")
+        let temporaryRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent("woof-applecert-build-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: temporaryRoot,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        defer { try? FileManager.default.removeItem(at: temporaryRoot) }
+        let derivedDataURL = temporaryRoot.appendingPathComponent("DerivedData", isDirectory: true)
+        let build = try await ProcessRunner.checked(
+            "/usr/bin/xcodebuild",
+            [
+                "build",
+                "-project", projectURL.path,
+                "-scheme", "KinoPad",
+                "-configuration", "Release",
+                "-destination", "generic/platform=iOS",
+                "-derivedDataPath", derivedDataURL.path,
+                "CODE_SIGNING_ALLOWED=NO"
+            ],
+            currentDirectory: repository
+        )
+        record(build.output)
+        let appURL = derivedDataURL.appendingPathComponent("Build/Products/Release-iphoneos/KinoPad.app")
+        guard FileManager.default.fileExists(atPath: appURL.path) else { throw AppleCertError.invalidApp }
+        let signedIPA = try await AppleCertSigning.signAndPackage(appURL: appURL, deviceID: device.id)
+        ipaPath = signedIPA.path
+        defaults.set(signedIPA.path, forKey: "ipaPath")
+        try await install(appURL: appURL, on: device, launchAfterInstall: launchAfterInstall)
+        if selectedDeviceID == device.id { try await refreshInstalledVersionInternal() }
     }
 
     private func install(

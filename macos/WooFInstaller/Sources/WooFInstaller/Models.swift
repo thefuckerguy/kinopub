@@ -1,7 +1,7 @@
 import Foundation
 
 enum InstallerConstants {
-    static let expectedBundleID = "app.kinopad.KinoPad"
+    static let expectedBundleID = "app.xigua7648.gray5696"
     static let githubRepository = "thefuckerguy/kinopub"
     static let githubURL = URL(string: "https://github.com/thefuckerguy/kinopub")!
     static let appStoreConnectURL = URL(string: "https://appstoreconnect.apple.com/apps")!
@@ -118,6 +118,8 @@ struct InstalledApp: Decodable {
     let bundleIdentifier: String
     let version: String?
     let bundleVersion: String?
+    var containerAccessible: Bool? = nil
+    var dataContainerPath: String? = nil
 }
 
 struct GitHubRelease: Decodable, Equatable {
