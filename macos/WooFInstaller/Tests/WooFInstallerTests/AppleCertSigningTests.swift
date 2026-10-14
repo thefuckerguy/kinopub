@@ -139,7 +139,27 @@ final class AppleCertSigningTests: XCTestCase {
                           "-out", certificateOnlyP12.path, "-passout", "stdin"])
 
         let identityData = try Data(contentsOf: identityP12)
-        XCTAssertFalse(try AppleCertSigning.identityCertificate(p12: identityData, password: "fixture-secret").isEmpty)
+        let importedCertificate = try AppleCertSigning.identityCertificate(p12: identityData, password: "fixture-secret")
+        XCTAssertFalse(importedCertificate.isEmpty)
+        let signingKeychain = try AppleCertSigning.createTemporaryKeychain(at: root.appendingPathComponent("signing.keychain-db"))
+        defer { SecKeychainDelete(signingKeychain) }
+        XCTAssertThrowsError(try AppleCertSigning.verifyImportedIdentity(certificate: importedCertificate, in: signingKeychain)) {
+            guard case AppleCertError.signingIdentityNotFound = $0 else { return XCTFail("Wrong error: \($0)") }
+        }
+        try AppleCertSigning.importIdentity(p12: identityData, password: "fixture-secret", into: signingKeychain)
+        try AppleCertSigning.verifyImportedIdentity(certificate: importedCertificate, in: signingKeychain)
+        XCTAssertThrowsError(try AppleCertSigning.verifyImportedIdentity(certificate: Data([0]), in: signingKeychain)) {
+            guard case AppleCertError.signingIdentityNotFound = $0 else { return XCTFail("Wrong error: \($0)") }
+        }
+        let originalSearchList = try AppleCertSigning.addToKeychainSearchList(signingKeychain)
+        defer { SecKeychainSetSearchList(originalSearchList) }
+        var activeSearchList: CFArray?
+        XCTAssertEqual(SecKeychainCopySearchList(&activeSearchList), errSecSuccess)
+        XCTAssertTrue((activeSearchList as? [SecKeychain])?.contains(where: { CFEqual($0, signingKeychain) }) == true)
+        XCTAssertEqual(SecKeychainSetSearchList(originalSearchList), errSecSuccess)
+        var restoredSearchList: CFArray?
+        XCTAssertEqual(SecKeychainCopySearchList(&restoredSearchList), errSecSuccess)
+        XCTAssertTrue(restoredSearchList.map { CFEqual($0, originalSearchList) } == true)
         XCTAssertThrowsError(try AppleCertSigning.identityCertificate(p12: identityData, password: "incorrect")) {
             guard case let AppleCertError.cannotDecryptPKCS12(status) = $0,
                   status == errSecAuthFailed || status == errSecPkcs12VerifyFailure else {

@@ -17,6 +17,9 @@ enum AppleCertError: LocalizedError {
     case certificateMismatch
     case missingCredentials
     case keychainFailure(OSStatus)
+    case signingIdentityNotFound
+    case signingIdentityAccessDenied(OSStatus)
+    case signingIdentityNotEligible
     case unsupportedNestedBundle(String)
     case invalidApp
     case signingFailed(String)
@@ -37,6 +40,9 @@ enum AppleCertError: LocalizedError {
         case .certificateMismatch: return "Сертификат из .p12 отсутствует в выбранном provisioning profile."
         case .missingCredentials: return "Не удалось прочитать сохранённые AppleCert данные. Добавьте сертификат заново."
         case let .keychainFailure(status): return "Ошибка macOS Keychain (\(status)). Проверьте доступ к связке ключей."
+        case .signingIdentityNotFound: return "Сертификат с закрытым ключом не найден во временной связке ключей для подписи. Добавьте AppleCert сертификат заново."
+        case let .signingIdentityAccessDenied(status): return "Нет доступа к закрытому ключу AppleCert во временной связке ключей (код \(status)). Проверьте разрешения Keychain и повторите попытку."
+        case .signingIdentityNotEligible: return "Импортированный AppleCert сертификат не распознаётся macOS как действительный сертификат для подписи кода. Проверьте сертификат и его срок действия."
         case let .unsupportedNestedBundle(id): return "В сборке есть вложенное приложение \(id), для которого выбранный профиль не подходит."
         case .invalidApp: return "Не удалось найти корректный пакет WooF.Play после сборки."
         case let .signingFailed(reason): return "Не удалось подписать WooF.Play сохранённым сертификатом: \(reason)"
@@ -206,6 +212,13 @@ enum AppleCertSigning {
         defer { SecKeychainDelete(keychain) }
         try importIdentity(p12: p12, password: password, into: keychain)
         let identityHash = Insecure.SHA1.hash(data: certificate).map { String(format: "%02X", $0) }.joined()
+        let originalSearchList = try addToKeychainSearchList(keychain)
+        var searchListRestored = false
+        defer {
+            if !searchListRestored { _ = SecKeychainSetSearchList(originalSearchList) }
+        }
+        try verifyImportedIdentity(certificate: certificate, in: keychain)
+        try await verifyCodesignEligibility(identityHash: identityHash, keychainURL: keychainURL)
 
         let bundles = try nestedCode(in: appURL)
         for bundle in bundles {
@@ -221,6 +234,9 @@ enum AppleCertSigning {
         }
         try await signBundle(appURL, bundleID: InstallerConstants.expectedBundleID, profileURL: profileURL, profile: profile, keychainURL: keychainURL, identityHash: identityHash, temporaryRoot: temporaryRoot)
         _ = try await checkedCodesign(["--verify", "--deep", "--strict", appURL.path])
+        let restoreStatus = SecKeychainSetSearchList(originalSearchList)
+        guard restoreStatus == errSecSuccess else { throw AppleCertError.keychainFailure(restoreStatus) }
+        searchListRestored = true
 
         let payload = temporaryRoot.appendingPathComponent("Payload", isDirectory: true)
         try FileManager.default.createDirectory(at: payload, withIntermediateDirectories: true)
@@ -313,18 +329,26 @@ enum AppleCertSigning {
         return SecCertificateCopyData(certificate) as Data
     }
 
-    private static func createTemporaryKeychain(at url: URL) throws -> SecKeychain {
+    static func createTemporaryKeychain(at url: URL) throws -> SecKeychain {
         var bytes = [UInt8](repeating: 0, count: 32)
+        defer { for index in bytes.indices { bytes[index] = 0 } }
         guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else { throw AppleCertError.keychainFailure(errSecInternalComponent) }
         var keychain: SecKeychain?
         let status = bytes.withUnsafeBytes { buffer in
             SecKeychainCreate(url.path, UInt32(buffer.count), buffer.baseAddress, false, nil, &keychain)
         }
         guard status == errSecSuccess, let keychain else { throw AppleCertError.keychainFailure(status) }
+        let unlockStatus = bytes.withUnsafeBytes { buffer in
+            SecKeychainUnlock(keychain, UInt32(buffer.count), buffer.baseAddress, true)
+        }
+        guard unlockStatus == errSecSuccess else {
+            SecKeychainDelete(keychain)
+            throw AppleCertError.keychainFailure(unlockStatus)
+        }
         return keychain
     }
 
-    private static func importIdentity(p12: Data, password: String, into keychain: SecKeychain) throws {
+    static func importIdentity(p12: Data, password: String, into keychain: SecKeychain) throws {
         var trustedApp: SecTrustedApplication?
         let trustStatus = SecTrustedApplicationCreateFromPath("/usr/bin/codesign", &trustedApp)
         guard trustStatus == errSecSuccess, let trustedApp else { throw AppleCertError.keychainFailure(trustStatus) }
@@ -338,6 +362,55 @@ enum AppleCertSigning {
         let status = SecPKCS12Import(p12 as CFData, options as CFDictionary, &items)
         guard status == errSecSuccess else { throw importError(for: status) }
         guard firstIdentity(in: items) != nil else { throw AppleCertError.missingPrivateKey }
+    }
+
+    static func addToKeychainSearchList(_ keychain: SecKeychain) throws -> CFArray {
+        var currentList: CFArray?
+        let copyStatus = SecKeychainCopySearchList(&currentList)
+        guard copyStatus == errSecSuccess, let currentList,
+              let keychains = currentList as? [SecKeychain] else {
+            throw AppleCertError.keychainFailure(copyStatus == errSecSuccess ? errSecInternalComponent : copyStatus)
+        }
+        let updateStatus = SecKeychainSetSearchList((keychains + [keychain]) as CFArray)
+        guard updateStatus == errSecSuccess else {
+            _ = SecKeychainSetSearchList(currentList)
+            throw AppleCertError.keychainFailure(updateStatus)
+        }
+        return currentList
+    }
+
+    static func verifyImportedIdentity(certificate: Data, in keychain: SecKeychain) throws {
+        let query: [String: Any] = [kSecClass as String: kSecClassIdentity,
+                                    kSecMatchSearchList as String: [keychain],
+                                    kSecMatchLimit as String: kSecMatchLimitAll,
+                                    kSecReturnRef as String: true]
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { throw AppleCertError.signingIdentityNotFound }
+        guard status == errSecSuccess else { throw AppleCertError.signingIdentityAccessDenied(status) }
+        guard let identities = result as? [SecIdentity] else { throw AppleCertError.signingIdentityNotFound }
+        for identity in identities {
+            var foundCertificate: SecCertificate?
+            let certificateStatus = SecIdentityCopyCertificate(identity, &foundCertificate)
+            guard certificateStatus == errSecSuccess, let foundCertificate else {
+                throw AppleCertError.signingIdentityAccessDenied(certificateStatus)
+            }
+            guard SecCertificateCopyData(foundCertificate) as Data == certificate else { continue }
+            var privateKey: SecKey?
+            let keyStatus = SecIdentityCopyPrivateKey(identity, &privateKey)
+            guard keyStatus == errSecSuccess, privateKey != nil else {
+                throw AppleCertError.signingIdentityAccessDenied(keyStatus)
+            }
+            return
+        }
+        throw AppleCertError.signingIdentityNotFound
+    }
+
+    private static func verifyCodesignEligibility(identityHash: String, keychainURL: URL) async throws {
+        let result = try await ProcessRunner.checked("/usr/bin/security", ["find-identity", "-v", "-p", "codesigning", keychainURL.path])
+        guard result.output.localizedCaseInsensitiveContains(identityHash) else {
+            throw AppleCertError.signingIdentityNotEligible
+        }
     }
 
     static func firstIdentity(in items: CFArray?) -> SecIdentity? {
